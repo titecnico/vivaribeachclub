@@ -33,11 +33,21 @@
       z-index: 1;
       pointer-events: none;
     }
+    #qrcode {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      z-index: 20;
+      background: white;
+      padding: 8px;
+      border-radius: 8px;
+    }
   </style>
 </head>
 <body>
   <video id="video" autoplay playsinline></video>
   <button id="selfieButton">📸 Tirar Selfie</button>
+  <div id="qrcode"></div>
 
   <script type="module">
     import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.150.1/build/three.module.js";
@@ -58,11 +68,9 @@
     renderer.setSize(window.innerWidth, window.innerHeight);
     document.body.appendChild(renderer.domElement);
 
-    // Luz
     const light = new THREE.HemisphereLight(0xffffff, 0x444444, 1);
     scene.add(light);
 
-    // Carregar Vivi
     const loader = new GLTFLoader();
     loader.load('vivi.glb', gltf => {
       const vivi = gltf.scene;
@@ -72,7 +80,7 @@
 
       function animate() {
         requestAnimationFrame(animate);
-        vivi.rotation.y += 0.01; // gira levemente
+        vivi.rotation.y += 0.01;
         renderer.render(scene, camera);
       }
       animate();
@@ -89,18 +97,14 @@
       canvas.height = window.innerHeight;
       const ctx = canvas.getContext("2d");
 
-      // Fundo: vídeo da câmera
       ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-      // Sobreposição: Vivi renderizada
       ctx.drawImage(renderer.domElement, 0, 0, canvas.width, canvas.height);
 
-      // Texto (marca d’água)
       ctx.font = "bold 40px Arial";
       ctx.fillStyle = "white";
       ctx.textAlign = "center";
       ctx.fillText("Estou no Vivari Beach Club", canvas.width / 2, 60);
 
-      // Baixar selfie
       const link = document.createElement("a");
       link.download = "selfie_vivi.png";
       link.href = canvas.toDataURL();
@@ -112,6 +116,13 @@
       camera.aspect = window.innerWidth / window.innerHeight;
       camera.updateProjectionMatrix();
       renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+
+    // === QR Code ===
+    import QRCode from "https://cdn.jsdelivr.net/npm/qrcode@1.5.1/build/qrcode.min.js";
+    QRCode.toCanvas(document.getElementById('qrcode'), window.location.href, function (error) {
+      if (error) console.error(error)
+      console.log('QR Code gerado!');
     });
   </script>
 </body>
