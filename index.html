@@ -5,7 +5,13 @@
   <title>Selfie com a Vivi - Vivari Beach Club</title>
   <style>
     body { margin: 0; overflow: hidden; font-family: Arial, sans-serif; }
-    #video { position: fixed; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; z-index: -1; }
+    #video {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      object-fit: cover;
+      z-index: -1;
+    }
     #selfieButton {
       position: fixed;
       bottom: 20px;
@@ -20,31 +26,41 @@
       cursor: pointer;
       z-index: 10;
     }
+    canvas {
+      position: absolute;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      z-index: 1;
+      pointer-events: none;
+    }
   </style>
 </head>
 <body>
   <video id="video" autoplay playsinline></video>
   <button id="selfieButton">📸 Tirar Selfie</button>
 
-  <!-- Carregando Three.js e GLTFLoader como módulos -->
   <script type="module">
     import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.150.1/build/three.module.js";
     import { GLTFLoader } from "https://cdn.jsdelivr.net/npm/three@0.150.1/examples/jsm/loaders/GLTFLoader.js";
 
-
+    // === Ativar câmera ===
     const video = document.getElementById('video');
     navigator.mediaDevices.getUserMedia({ video: true })
-      .then(stream => { video.srcObject = stream; });
+      .then(stream => { video.srcObject = stream; })
+      .catch(err => console.error("Erro ao acessar câmera:", err));
 
+    // === Cena 3D ===
     const scene = new THREE.Scene();
     const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
     const renderer = new THREE.WebGLRenderer({ alpha: true });
     renderer.setSize(window.innerWidth, window.innerHeight);
     document.body.appendChild(renderer.domElement);
 
+    // Luz
     const light = new THREE.HemisphereLight(0xffffff, 0x444444, 1);
     scene.add(light);
 
+    // Carregar Vivi
     const loader = new GLTFLoader();
     loader.load('vivi.glb', gltf => {
       const vivi = gltf.scene;
@@ -54,36 +70,47 @@
 
       function animate() {
         requestAnimationFrame(animate);
-        vivi.rotation.y += 0.01; // animação leve
+        vivi.rotation.y += 0.01; // gira levemente
         renderer.render(scene, camera);
       }
       animate();
+    }, undefined, err => {
+      console.error("Erro ao carregar vivi.glb:", err);
     });
 
     camera.position.z = 3;
 
-    // Selfie
+    // === Botão Selfie ===
     document.getElementById("selfieButton").addEventListener("click", () => {
       const canvas = document.createElement("canvas");
       canvas.width = window.innerWidth;
       canvas.height = window.innerHeight;
       const ctx = canvas.getContext("2d");
 
+      // Fundo: vídeo da câmera
       ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      // Sobreposição: Vivi renderizada
       ctx.drawImage(renderer.domElement, 0, 0, canvas.width, canvas.height);
 
-      // Marca d'água
+      // Texto (marca d’água)
       ctx.font = "bold 40px Arial";
       ctx.fillStyle = "white";
       ctx.textAlign = "center";
       ctx.fillText("Estou no Vivari Beach Club", canvas.width / 2, 60);
 
+      // Baixar selfie
       const link = document.createElement("a");
       link.download = "selfie_vivi.png";
       link.href = canvas.toDataURL();
       link.click();
     });
+
+    // Ajuste de tela responsiva
+    window.addEventListener('resize', () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
   </script>
 </body>
 </html>
-
