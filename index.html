@@ -41,7 +41,7 @@
 
   <script type="module">
     import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.150.1/build/three.module.js";
-    import { OBJLoader } from "https://cdn.jsdelivr.net/npm/three@0.150.1/examples/jsm/loaders/OBJLoader.js";
+    import { GLTFLoader } from "https://cdn.jsdelivr.net/npm/three@0.150.1/examples/jsm/loaders/GLTFLoader.js";
 
     // === Ativar câmera ===
     const video = document.getElementById('video');
@@ -59,20 +59,21 @@
     const light = new THREE.HemisphereLight(0xffffff, 0x444444, 1);
     scene.add(light);
 
-    // Carregar OBJ
-    const loader = new OBJLoader();
-    loader.load('vivi.obj', obj => {
-      obj.scale.set(2,2,2);
-      obj.position.set(0,-1, -3);
-      scene.add(obj);
+    // Carregar Vivi GLB
+    const loader = new GLTFLoader();
+    loader.load('vivi.glb', gltf => {
+      const vivi = gltf.scene;
+      vivi.scale.set(2,2,2);
+      vivi.position.set(0, -1, -3);
+      scene.add(vivi);
 
       function animate() {
         requestAnimationFrame(animate);
-        obj.rotation.y += 0.01;
+        vivi.rotation.y += 0.01;
         renderer.render(scene, camera);
       }
       animate();
-    }, undefined, err => console.error("Erro ao carregar vivi.obj:", err));
+    }, undefined, err => console.error("Erro ao carregar vivi.glb:", err));
 
     camera.position.z = 5;
 
