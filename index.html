@@ -56,8 +56,14 @@
     renderer.setSize(window.innerWidth, window.innerHeight);
     document.body.appendChild(renderer.domElement);
 
-    const light = new THREE.HemisphereLight(0xffffff, 0x444444, 1);
-    scene.add(light);
+    // Luz ambiente
+    const ambientLight = new THREE.AmbientLight(0xffffff, 1);
+    scene.add(ambientLight);
+
+    // Luz direcional para destacar o modelo
+    const dirLight = new THREE.DirectionalLight(0xffffff, 1);
+    dirLight.position.set(5, 10, 5);
+    scene.add(dirLight);
 
     // Carregar Vivi GLB
     const loader = new GLTFLoader();
@@ -75,7 +81,7 @@
       animate();
     }, undefined, err => console.error("Erro ao carregar vivi.glb:", err));
 
-    camera.position.z = 5;
+    camera.position.set(0, 1, 5);
 
     // === Botão Selfie ===
     document.getElementById("selfieButton").addEventListener("click", () => {
@@ -92,22 +98,3 @@
       // Texto (marca d’água)
       ctx.font = "bold 40px Arial";
       ctx.fillStyle = "white";
-      ctx.textAlign = "center";
-      ctx.fillText("Estou no Vivari Beach Club", canvas.width / 2, 60);
-
-      // Baixar selfie
-      const link = document.createElement("a");
-      link.download = "selfie_vivi.png";
-      link.href = canvas.toDataURL();
-      link.click();
-    });
-
-    // Ajuste de tela responsiva
-    window.addEventListener('resize', () => {
-      camera.aspect = window.innerWidth / window.innerHeight;
-      camera.updateProjectionMatrix();
-      renderer.setSize(window.innerWidth, window.innerHeight);
-    });
-  </script>
-</body>
-</html>
