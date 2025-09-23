@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <title>Selfie AR - Vivari Beach Club</title>
 <script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <style>
   body { margin:0; background:#000; overflow:hidden; font-family:Arial,sans-serif; }
   #cameraVideo {
@@ -16,10 +17,8 @@
     z-index:1;
   }
   model-viewer {
-    width:70%;      /* Vivi menor */
-    height:70%;
-    position:absolute;
-    top:15%; left:15%;
+    width:70%; height:70%;
+    position:absolute; top:15%; left:15%;
     pointer-events:auto;
   }
   #controls {
@@ -33,7 +32,6 @@
     background:#0b84ff; color:#fff; font-weight:bold; font-size:24px;
     cursor:pointer; box-shadow:0 6px 12px rgba(0,0,0,0.4);
   }
-  .btn:hover { background:#ffcc00; color:#000; }
   #rotateHint {
     position:absolute; bottom:110px; left:50%; transform:translateX(-50%);
     z-index:10;
@@ -41,10 +39,7 @@
     background:rgba(0,0,0,0.4); padding:8px 12px; border-radius:8px;
   }
   @media (max-width:600px) {
-    .btn {
-      padding:34px 46px;
-      font-size:28px;
-    }
+    .btn { padding:34px 46px; font-size:28px; }
     #rotateHint { font-size:16px; bottom:130px; }
   }
 </style>
@@ -84,7 +79,6 @@
         video: { facingMode: useFrontCamera ? "user" : "environment" }
       });
       video.srcObject = currentStream;
-      // espelha apenas no modo selfie
       video.style.transform = useFrontCamera ? "scaleX(-1)" : "scaleX(1)";
     } catch (err) {
       alert("Erro ao acessar câmera: " + err);
@@ -96,48 +90,21 @@
     startCamera();
   });
 
-  const captureBtn = document.getElementById('captureBtn');
-  const modelViewer = document.getElementById('model');
-
-  captureBtn.addEventListener('click', async () => {
-    try {
-      const modelSnapshot = await modelViewer.toDataURL();
-      const canvas = document.createElement('canvas');
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight;
+  // captura DOM inteiro (câmera + vivi + overlay)
+  document.getElementById('captureBtn').addEventListener('click', async () => {
+    const watermark = "Vivari Beach Club";
+    html2canvas(document.body).then(canvas => {
       const ctx = canvas.getContext('2d');
+      ctx.font = `${Math.floor(canvas.height/18)}px Arial Black`;
+      ctx.fillStyle = "rgba(255,255,255,0.7)";
+      ctx.textAlign = "center";
+      ctx.fillText(watermark, canvas.width/2, canvas.height-40);
 
-      // desenha câmera
-      if (useFrontCamera) {
-        ctx.translate(canvas.width, 0);
-        ctx.scale(-1, 1);
-      }
-      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-
-      ctx.setTransform(1,0,0,1,0,0);
-
-      // desenha Vivi
-      const imgModel = new Image();
-      imgModel.onload = () => {
-        ctx.drawImage(imgModel, canvas.width*0.15, canvas.height*0.15, canvas.width*0.7, canvas.height*0.7);
-
-        // marca d'água
-        ctx.font = `${Math.floor(canvas.height/18)}px Arial Black`;
-        ctx.fillStyle = "rgba(255,255,255,0.7)";
-        ctx.textAlign = "center";
-        ctx.fillText("Vivari Beach Club", canvas.width/2, canvas.height-40);
-
-        const link = document.createElement('a');
-        link.download = 'selfie_vivi.png';
-        link.href = canvas.toDataURL('image/png');
-        link.click();
-      };
-      imgModel.src = modelSnapshot;
-
-    } catch(err) {
-      console.error("Erro ao capturar selfie:", err);
-      alert("Erro ao capturar a selfie.");
-    }
+      const link = document.createElement('a');
+      link.download = 'selfie_vivi.png';
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+    });
   });
 
   startCamera();
