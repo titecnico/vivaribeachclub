@@ -28,9 +28,9 @@
   #captureBtn {
     position:absolute; bottom:30px; left:50%; transform:translateX(-50%);
     z-index:10;
-    padding:60px 80px; 
-    border:none; border-radius:30px;
-    background:#0b84ff; color:#fff; font-weight:bold; font-size:42px;
+    padding:24px 36px; 
+    border:none; border-radius:20px;
+    background:#0b84ff; color:#fff; font-weight:bold; font-size:28px;
     cursor:pointer; box-shadow:0 6px 12px rgba(0,0,0,0.4);
     touch-action: manipulation; 
   }
@@ -47,8 +47,8 @@
 
   @media (max-width:600px) {
     #captureBtn {
-      padding:72px 96px; 
-      font-size:48px;
+      padding:30px 44px; 
+      font-size:32px;    
     }
     #rotateHint {
       font-size:16px;
@@ -67,12 +67,13 @@
                 camera-controls
                 auto-rotate
                 auto-rotate-delay="0"
-                rotation-per-second="30deg"
-                camera-orbit="0deg 75deg 2.5m"
+                rotation-per-second="20deg"
+                camera-orbit="0deg 75deg 1.8m"
                 ar
                 ar-modes="webxr scene-viewer quick-look"
                 environment-image="neutral"
-                shadow-intensity="1">
+                shadow-intensity="1"
+                scale="0.6">
   </model-viewer>
 </div>
 
