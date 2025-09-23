@@ -9,18 +9,19 @@
   #cameraVideo {
     position:fixed; top:0; left:0; width:100vw; height:100vh;
     object-fit:cover; z-index:0;
+    pointer-events:none; /* permite que toques passem para o model-viewer */
   }
   model-viewer {
     position:fixed; top:0; left:0; width:100vw; height:100vh;
-    z-index:1; pointer-events:none;
-    opacity:0.9; /* Transparência do modelo sobre a câmera */
+    z-index:1; pointer-events:auto; /* agora você consegue girar o modelo */
+    opacity:0.9;
   }
   #captureBtn {
-    position:absolute; bottom:20px; left:50%; transform:translateX(-50%);
+    position:absolute; bottom:30px; left:50%; transform:translateX(-50%);
     z-index:10;
-    padding:12px 20px; border:none; border-radius:12px;
-    background:#0b84ff; color:#fff; font-weight:bold; font-size:18px;
-    cursor:pointer; box-shadow:0 4px 8px rgba(0,0,0,0.3);
+    padding:20px 28px; border:none; border-radius:16px;
+    background:#0b84ff; color:#fff; font-weight:bold; font-size:22px;
+    cursor:pointer; box-shadow:0 6px 12px rgba(0,0,0,0.4);
   }
   #qrCode {
     position:absolute; top:20px; left:20px; z-index:10;
@@ -46,14 +47,13 @@
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <script>
-  // Gera QR Code apontando para o próprio site
   new QRCode(document.getElementById("qrCode"), {
     text: window.location.href,
     width: 120,
     height: 120
   });
 
-  // Acessa câmera do celular
+  // Acessa câmera
   const video = document.getElementById('cameraVideo');
   navigator.mediaDevices.getUserMedia({ video:{ facingMode:"user" } })
     .then(stream => video.srcObject = stream)
@@ -64,30 +64,22 @@
 
   captureBtn.addEventListener('click', async () => {
     try {
-      // Captura render do model-viewer
       const modelSnapshot = await modelViewer.toDataURL();
-
-      // Cria canvas do tamanho da tela
       const canvas = document.createElement('canvas');
       canvas.width = window.innerWidth;
       canvas.height = window.innerHeight;
       const ctx = canvas.getContext('2d');
 
-      // Desenha vídeo da câmera
       ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-      // Desenha modelo sobreposto
       const imgModel = new Image();
       imgModel.onload = () => {
         ctx.drawImage(imgModel, 0, 0, canvas.width, canvas.height);
-
-        // Adiciona marca d'água
         ctx.font = `${Math.floor(canvas.height/20)}px Arial`;
         ctx.fillStyle = "rgba(255,255,255,0.6)";
         ctx.textAlign = "right";
         ctx.fillText("Vivari Beach Club", canvas.width-20, canvas.height-20);
 
-        // Salvar imagem final
         const link = document.createElement('a');
         link.download = 'selfie_vivi.png';
         link.href = canvas.toDataURL('image/png');
