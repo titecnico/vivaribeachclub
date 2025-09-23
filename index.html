@@ -1,100 +1,139 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8">
-  <title>Selfie com a Vivi - Vivari Beach Club</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover" />
+  <title>Selfie com Vivi 3D</title>
   <style>
-    body { margin: 0; overflow: hidden; font-family: Arial, sans-serif; background: #000; }
-    #video {
-      position: fixed;
-      top: 0; left: 0;
-      width: 100%; height: 100%;
-      object-fit: cover;
-      z-index: -1;
+    html,body{height:100%;margin:0;background:#111;font-family:sans-serif}
+    #container{position:relative;width:100%;height:100vh;overflow:hidden}
+    video#cam{
+      position:absolute;inset:0;width:100%;height:100%;object-fit:cover;
+      transform:scaleX(-1); /* espelhar vídeo para selfie */
     }
-    #selfieButton {
-      position: fixed;
-      bottom: 20px;
-      left: 50%;
-      transform: translateX(-50%);
-      padding: 12px 24px;
-      font-size: 18px;
-      background: #ff4081;
-      color: #fff;
-      border: none;
-      border-radius: 8px;
-      cursor: pointer;
-      z-index: 10;
-    }
-    canvas {
-      position: absolute;
-      top: 0; left: 0;
-      width: 100%; height: 100%;
-      z-index: 1;
-      pointer-events: none;
-    }
+    canvas#three-canvas{position:absolute;inset:0;width:100%;height:100%}
+    #ui{position:absolute;top:12px;right:12px;z-index:20;display:flex;flex-direction:column;gap:8px}
+    button{padding:10px 14px;border:0;border-radius:8px;background:#0b84ff;color:#fff;font-weight:600}
+    button:active{transform:translateY(1px)}
+    #loader{position:absolute;top:12px;left:12px;color:#fff;background:rgba(0,0,0,0.4);padding:6px 10px;border-radius:6px}
   </style>
 </head>
 <body>
-  <video id="video" autoplay playsinline></video>
-  <button id="selfieButton">📸 Tirar Selfie</button>
+  <div id="container">
+    <video id="cam" autoplay playsinline muted></video>
+    <canvas id="three-canvas"></canvas>
+    <div id="loader">Carregando Vivi...</div>
 
-  <script type="module">
-    import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.150.1/build/three.module.js";
-    import { GLTFLoader } from "https://cdn.jsdelivr.net/npm/three@0.150.1/examples/jsm/loaders/GLTFLoader.js";
+    <div id="ui">
+      <button id="captureBtn">📸 Tirar selfie</button>
+    </div>
+  </div>
 
-    // === Ativar câmera ===
-    const video = document.getElementById('video');
-    navigator.mediaDevices.getUserMedia({ video: true })
-      .then(stream => { video.srcObject = stream; })
-      .catch(err => console.error("Erro ao acessar câmera:", err));
+  <!-- three.js e loaders -->
+  <script src="https://cdn.jsdelivr.net/npm/three@0.152.2/build/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.152.2/examples/js/controls/OrbitControls.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.152.2/examples/js/loaders/GLTFLoader.js"></script>
 
-    // === Cena 3D ===
-    const scene = new THREE.Scene();
-    const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-    const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
-    renderer.setSize(window.innerWidth, window.innerHeight);
-    document.body.appendChild(renderer.domElement);
+  <script>
+    const video = document.getElementById('cam');
+    const canvas3D = document.getElementById('three-canvas');
+    const captureBtn = document.getElementById('captureBtn');
+    const loader = document.getElementById('loader');
 
-    // Luz ambiente
-    const ambientLight = new THREE.AmbientLight(0xffffff, 1);
-    scene.add(ambientLight);
-
-    // Luz direcional para destacar o modelo
-    const dirLight = new THREE.DirectionalLight(0xffffff, 1);
-    dirLight.position.set(5, 10, 5);
-    scene.add(dirLight);
-
-    // Carregar Vivi GLB
-    const loader = new GLTFLoader();
-    loader.load('vivi.glb', gltf => {
-      const vivi = gltf.scene;
-      vivi.scale.set(2,2,2);
-      vivi.position.set(0, -1, -3);
-      scene.add(vivi);
-
-      function animate() {
-        requestAnimationFrame(animate);
-        vivi.rotation.y += 0.01;
-        renderer.render(scene, camera);
+    async function startCamera(){
+      try{
+        const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode:"user" } });
+        video.srcObject = stream;
+        await video.play();
+      }catch(e){
+        alert("Erro câmera: " + e.message);
       }
+    }
+
+    let scene,camera,renderer,controls,mixer,clock;
+    async function initThree(){
+      scene = new THREE.Scene();
+      camera = new THREE.PerspectiveCamera(40, window.innerWidth/window.innerHeight, 0.1, 1000);
+      camera.position.set(0,1.5,3);
+
+      renderer = new THREE.WebGLRenderer({canvas:canvas3D,alpha:true,antialias:true});
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      renderer.setPixelRatio(window.devicePixelRatio);
+
+      const amb = new THREE.AmbientLight(0xffffff,0.9); scene.add(amb);
+      const dir = new THREE.DirectionalLight(0xffffff,0.6); dir.position.set(5,10,7); scene.add(dir);
+
+      controls = new THREE.OrbitControls(camera,renderer.domElement);
+      controls.target.set(0,1,0);
+      controls.update();
+
+      clock = new THREE.Clock();
+
+      await loadGLB("vivi.glb");
+
       animate();
-    }, undefined, err => console.error("Erro ao carregar vivi.glb:", err));
+    }
 
-    camera.position.set(0, 1, 5);
+    async function loadGLB(path){
+      return new Promise((res,rej)=>{
+        const loaderGLB = new THREE.GLTFLoader();
+        loaderGLB.load(path,(gltf)=>{
+          const model = gltf.scene;
+          model.scale.set(1,1,1);
+          scene.add(model);
 
-    // === Botão Selfie ===
-    document.getElementById("selfieButton").addEventListener("click", () => {
-      const canvas = document.createElement("canvas");
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight;
-      const ctx = canvas.getContext("2d");
+          // se tiver animações
+          if(gltf.animations.length>0){
+            mixer = new THREE.AnimationMixer(model);
+            gltf.animations.forEach(anim => mixer.clipAction(anim).play());
+          }
 
-      // Fundo: vídeo da câmera
-      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-      // Sobreposição: Vivi renderizada
-      ctx.drawImage(renderer.domElement, 0, 0, canvas.width, canvas.height);
+          loader.style.display="none";
+          res(model);
+        },undefined,(err)=>rej(err));
+      });
+    }
 
-      // Texto (marca d’água)
-      ctx.font = "bold 40px Arial";
-      ctx.fillStyle = "white";
+    function animate(){
+      requestAnimationFrame(animate);
+      const delta = clock.getDelta();
+      if(mixer) mixer.update(delta);
+      controls.update();
+      renderer.render(scene,camera);
+    }
+
+    // selfie
+    captureBtn.addEventListener("click",()=>{
+      const w = window.innerWidth;
+      const h = window.innerHeight;
+      const out = document.createElement("canvas");
+      out.width=w; out.height=h;
+      const ctx = out.getContext("2d");
+
+      // vídeo espelhado
+      ctx.save();
+      ctx.translate(w,0);
+      ctx.scale(-1,1);
+      ctx.drawImage(video,0,0,w,h);
+      ctx.restore();
+
+      // render 3D atual
+      ctx.drawImage(renderer.domElement,0,0,w,h);
+
+      const link=document.createElement("a");
+      link.download="selfie_vivi.png";
+      link.href=out.toDataURL("image/png");
+      link.click();
+    });
+
+    window.addEventListener("resize",()=>{
+      camera.aspect=window.innerWidth/window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth,window.innerHeight);
+    });
+
+    startCamera();
+    initThree();
+  </script>
+</body>
+</html>
