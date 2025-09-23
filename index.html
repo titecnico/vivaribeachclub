@@ -4,7 +4,6 @@
 <meta charset="UTF-8">
 <title>Selfie AR - Vivari Beach Club</title>
 <script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <style>
   body { margin:0; background:#000; overflow:hidden; font-family:Arial,sans-serif; }
   #cameraVideo {
@@ -90,21 +89,52 @@
     startCamera();
   });
 
-  // captura DOM inteiro (câmera + vivi + overlay)
-  document.getElementById('captureBtn').addEventListener('click', async () => {
-    const watermark = "Vivari Beach Club";
-    html2canvas(document.body).then(canvas => {
-      const ctx = canvas.getContext('2d');
-      ctx.font = `${Math.floor(canvas.height/18)}px Arial Black`;
-      ctx.fillStyle = "rgba(255,255,255,0.7)";
-      ctx.textAlign = "center";
-      ctx.fillText(watermark, canvas.width/2, canvas.height-40);
+  const captureBtn = document.getElementById('captureBtn');
+  const modelViewer = document.getElementById('model');
 
-      const link = document.createElement('a');
-      link.download = 'selfie_vivi.png';
-      link.href = canvas.toDataURL('image/png');
-      link.click();
-    });
+  captureBtn.addEventListener('click', async () => {
+    try {
+      // snapshot da Vivi
+      const modelSnapshot = await modelViewer.toDataURL();
+
+      // canvas final
+      const canvas = document.createElement('canvas');
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+      const ctx = canvas.getContext('2d');
+
+      // desenha vídeo
+      if (useFrontCamera) {
+        ctx.translate(canvas.width, 0);
+        ctx.scale(-1, 1);
+      }
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+      ctx.setTransform(1,0,0,1,0,0);
+
+      // desenha Vivi
+      const imgModel = new Image();
+      imgModel.onload = () => {
+        ctx.drawImage(imgModel, canvas.width*0.15, canvas.height*0.15, canvas.width*0.7, canvas.height*0.7);
+
+        // marca d’água
+        ctx.font = `${Math.floor(canvas.height/18)}px Arial Black`;
+        ctx.fillStyle = "rgba(255,255,255,0.7)";
+        ctx.textAlign = "center";
+        ctx.fillText("Vivari Beach Club", canvas.width/2, canvas.height-40);
+
+        // salva
+        const link = document.createElement('a');
+        link.download = 'selfie_vivi.png';
+        link.href = canvas.toDataURL('image/png');
+        link.click();
+      };
+      imgModel.src = modelSnapshot;
+
+    } catch(err) {
+      console.error("Erro ao capturar selfie:", err);
+      alert("Erro ao capturar a selfie.");
+    }
   });
 
   startCamera();
