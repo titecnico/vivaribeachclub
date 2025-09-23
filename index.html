@@ -16,16 +16,15 @@
 <body>
 <button id="captureBtn">📸 Tirar selfie</button>
 
-<!-- Three.js UMD compatível -->
-<script src="https://unpkg.com/three@0.149.0/build/three.min.js"></script>
-<script src="https://unpkg.com/three@0.149.0/examples/js/controls/OrbitControls.js"></script>
-<script src="https://unpkg.com/three@0.149.0/examples/js/loaders/GLTFLoader.js"></script>
+<script type="module">
+  import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.152.2/build/three.module.js';
+  import { OrbitControls } from 'https://cdn.jsdelivr.net/npm/three@0.152.2/examples/jsm/controls/OrbitControls.js';
+  import { GLTFLoader } from 'https://cdn.jsdelivr.net/npm/three@0.152.2/examples/jsm/loaders/GLTFLoader.js';
 
-<script>
   // Cena e câmera
   const scene = new THREE.Scene();
   const camera = new THREE.PerspectiveCamera(60, window.innerWidth/window.innerHeight, 0.1, 1000);
-  camera.position.set(0,1.5,3);
+  camera.position.set(0, 1.5, 3);
 
   // Renderizador
   const renderer = new THREE.WebGLRenderer({ antialias:true, alpha:true });
@@ -33,7 +32,7 @@
   document.body.appendChild(renderer.domElement);
 
   // Controles
-  const controls = new THREE.OrbitControls(camera, renderer.domElement);
+  const controls = new OrbitControls(camera, renderer.domElement);
   controls.enableDamping = true;
 
   // Luzes
@@ -41,17 +40,15 @@
   hemiLight.position.set(0,20,20);
   scene.add(hemiLight);
 
-  const dirLight = new THREE.DirectionalLight(0xffffff,1);
+  const dirLight = new THREE.DirectionalLight(0xffffff, 1);
   dirLight.position.set(5,10,7.5);
   scene.add(dirLight);
 
   // Carregar GLB
-  const loader = new THREE.GLTFLoader();
+  const loader = new GLTFLoader();
   loader.load('vivi.glb',
     function(gltf){
       const model = gltf.scene;
-
-      // Escala e posição
       model.scale.set(2,2,2);
       model.position.set(0,-1,0);
       scene.add(model);
@@ -84,7 +81,7 @@
   function animate(){
     requestAnimationFrame(animate);
     controls.update();
-    renderer.render(scene,camera);
+    renderer.render(scene, camera);
   }
   animate();
 
@@ -94,8 +91,8 @@
   document.body.appendChild(video);
 
   navigator.mediaDevices.getUserMedia({video:{facingMode:"user"}})
-  .then(stream=>video.srcObject=stream)
-  .catch(err=>console.error('Erro câmera:',err));
+    .then(stream=>video.srcObject=stream)
+    .catch(err=>console.error('Erro câmera:',err));
 
   document.getElementById('captureBtn').addEventListener('click',()=>{
     const w=window.innerWidth, h=window.innerHeight;
