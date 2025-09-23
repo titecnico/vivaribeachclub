@@ -16,7 +16,7 @@
     z-index:1;
   }
   model-viewer {
-    width:80%;      /* menor para caber a pessoa */
+    width:80%;      
     height:80%;
     position:absolute;
     top:10%;
@@ -28,10 +28,11 @@
   #captureBtn {
     position:absolute; bottom:30px; left:50%; transform:translateX(-50%);
     z-index:10;
-    padding:36px 48px; /* maior para celulares */
-    border:none; border-radius:24px;
-    background:#0b84ff; color:#fff; font-weight:bold; font-size:32px; /* fonte maior */
+    padding:60px 80px; /* botão gigante */
+    border:none; border-radius:30px;
+    background:#0b84ff; color:#fff; font-weight:bold; font-size:42px; /* fonte grande */
     cursor:pointer; box-shadow:0 6px 12px rgba(0,0,0,0.4);
+    touch-action: manipulation; /* melhora toque no iPhone */
   }
   #qrCode {
     position:absolute; top:20px; left:20px; z-index:10;
@@ -46,8 +47,8 @@
 
   @media (max-width:600px) {
     #captureBtn {
-      padding:48px 60px;
-      font-size:36px;
+      padding:72px 96px; /* ainda maior em celulares */
+      font-size:48px;
     }
     #rotateHint {
       font-size:16px;
@@ -99,7 +100,7 @@
   let direction = 1;
   const maxAngle = 30;
   function animate() {
-    angle += direction * 0.3; // velocidade da rotação
+    angle += direction * 0.3; 
     if (angle > maxAngle) direction = -1;
     if (angle < -maxAngle) direction = 1;
     modelViewer.style.transform = `rotateY(${angle}deg)`;
