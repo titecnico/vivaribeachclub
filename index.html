@@ -1,90 +1,149 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8">
-  <title>Vivi 3D</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover" />
+  <title>Selfie com Vivi 3D</title>
   <style>
-    body { margin: 0; overflow: hidden; }
-    canvas { display: block; }
+    html,body{height:100%;margin:0;background:#111;font-family:sans-serif}
+    #container{position:relative;width:100%;height:100vh;overflow:hidden}
+    video#cam{
+      position:absolute;inset:0;width:100%;height:100%;object-fit:cover;
+      transform:scaleX(-1); /* espelhar vídeo para selfie */
+    }
+    canvas#three-canvas{position:absolute;inset:0;width:100%;height:100%}
+    #ui{position:absolute;top:12px;right:12px;z-index:20;display:flex;flex-direction:column;gap:8px}
+    button{padding:10px 14px;border:0;border-radius:8px;background:#0b84ff;color:#fff;font-weight:600}
+    button:active{transform:translateY(1px)}
+    #loader{position:absolute;top:12px;left:12px;color:#fff;background:rgba(0,0,0,0.4);padding:6px 10px;border-radius:6px}
+    #qrcode{position:absolute;bottom:12px;left:12px;z-index:30;background:#fff;padding:6px;border-radius:8px}
   </style>
 </head>
 <body>
+  <div id="container">
+    <video id="cam" autoplay playsinline muted></video>
+    <canvas id="three-canvas"></canvas>
+    <div id="loader">Carregando Vivi...</div>
+
+    <div id="ui">
+      <button id="captureBtn">📸 Tirar selfie</button>
+    </div>
+
+    <div id="qrcode">
+      <canvas id="qrCanvas"></canvas>
+    </div>
+  </div>
+
+  <!-- three.js e loaders -->
   <script src="https://cdn.jsdelivr.net/npm/three@0.152.2/build/three.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/three@0.152.2/examples/js/loaders/GLTFLoader.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.152.2/examples/js/controls/OrbitControls.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.152.2/examples/js/loaders/GLTFLoader.js"></script>
+  <!-- QR Code lib -->
+  <script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
 
   <script>
-    // Cena e câmera
-    const scene = new THREE.Scene();
-    const camera = new THREE.PerspectiveCamera(
-      60,
-      window.innerWidth / window.innerHeight,
-      0.1,
-      1000
-    );
-    camera.position.set(0, 1.5, 3);
+    const video = document.getElementById('cam');
+    const canvas3D = document.getElementById('three-canvas');
+    const captureBtn = document.getElementById('captureBtn');
+    const loader = document.getElementById('loader');
 
-    // Renderizador
-    const renderer = new THREE.WebGLRenderer({ antialias: true });
-    renderer.setSize(window.innerWidth, window.innerHeight);
-    document.body.appendChild(renderer.domElement);
-
-    // Controles
-    const controls = new THREE.OrbitControls(camera, renderer.domElement);
-    controls.enableDamping = true;
-
-    // Luz ambiente e direcional
-    const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 2);
-    hemiLight.position.set(0, 20, 20);
-    scene.add(hemiLight);
-
-    const dirLight = new THREE.DirectionalLight(0xffffff, 1);
-    dirLight.position.set(5, 10, 7.5);
-    scene.add(dirLight);
-
-    // Carregar modelo GLB
-    const loader = new THREE.GLTFLoader();
-    loader.load(
-      'vivi.glb',
-      function (gltf) {
-        const model = gltf.scene;
-
-        // Escala e posição
-        model.scale.set(0.5, 0.5, 0.5);
-        model.position.set(0, -1, 0);
-        scene.add(model);
-
-        // Centralizar câmera automaticamente
-        const box = new THREE.Box3().setFromObject(model);
-        const center = box.getCenter(new THREE.Vector3());
-        const size = box.getSize(new THREE.Vector3());
-        const maxDim = Math.max(size.x, size.y, size.z);
-
-        camera.position.copy(center);
-        camera.position.z += maxDim * 2;
-        camera.lookAt(center);
-        controls.target.copy(center);
-      },
-      undefined,
-      function (error) {
-        console.error('Erro ao carregar modelo:', error);
+    async function startCamera(){
+      try{
+        const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode:"user" } });
+        video.srcObject = stream;
+        await video.play();
+      }catch(e){
+        alert("Erro câmera: " + e.message);
       }
-    );
+    }
 
-    // Responsividade
-    window.addEventListener('resize', () => {
-      camera.aspect = window.innerWidth / window.innerHeight;
-      camera.updateProjectionMatrix();
+    let scene,camera,renderer,controls,mixer,clock;
+    async function initThree(){
+      scene = new THREE.Scene();
+      camera = new THREE.PerspectiveCamera(40, window.innerWidth/window.innerHeight, 0.1, 1000);
+      camera.position.set(0,1.5,3);
+
+      renderer = new THREE.WebGLRenderer({canvas:canvas3D,alpha:true,antialias:true});
       renderer.setSize(window.innerWidth, window.innerHeight);
+      renderer.setPixelRatio(window.devicePixelRatio);
+
+      const amb = new THREE.AmbientLight(0xffffff,0.9); scene.add(amb);
+      const dir = new THREE.DirectionalLight(0xffffff,0.6); dir.position.set(5,10,7); scene.add(dir);
+
+      controls = new THREE.OrbitControls(camera,renderer.domElement);
+      controls.target.set(0,1,0);
+      controls.update();
+
+      clock = new THREE.Clock();
+
+      await loadGLB("vivi.glb");
+
+      animate();
+    }
+
+    async function loadGLB(path){
+      return new Promise((res,rej)=>{
+        const loaderGLB = new THREE.GLTFLoader();
+        loaderGLB.load(path,(gltf)=>{
+          const model = gltf.scene;
+          model.scale.set(1,1,1);
+          scene.add(model);
+
+          if(gltf.animations.length>0){
+            mixer = new THREE.AnimationMixer(model);
+            gltf.animations.forEach(anim => mixer.clipAction(anim).play());
+          }
+
+          loader.style.display="none";
+          res(model);
+        },undefined,(err)=>rej(err));
+      });
+    }
+
+    function animate(){
+      requestAnimationFrame(animate);
+      const delta = clock.getDelta();
+      if(mixer) mixer.update(delta);
+      controls.update();
+      renderer.render(scene,camera);
+    }
+
+    captureBtn.addEventListener("click",()=>{
+      const w = window.innerWidth;
+      const h = window.innerHeight;
+      const out = document.createElement("canvas");
+      out.width=w; out.height=h;
+      const ctx = out.getContext("2d");
+
+      ctx.save();
+      ctx.translate(w,0);
+      ctx.scale(-1,1);
+      ctx.drawImage(video,0,0,w,h);
+      ctx.restore();
+
+      ctx.drawImage(renderer.domElement,0,0,w,h);
+
+      const link=document.createElement("a");
+      link.download="selfie_vivi.png";
+      link.href=out.toDataURL("image/png");
+      link.click();
     });
 
-    // Loop de animação
-    function animate() {
-      requestAnimationFrame(animate);
-      controls.update();
-      renderer.render(scene, camera);
-    }
-    animate();
+    window.addEventListener("resize",()=>{
+      camera.aspect=window.innerWidth/window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth,window.innerHeight);
+    });
+
+    startCamera();
+    initThree();
+
+    // gerar QR code com a URL do site (quando publicado no GitHub Pages)
+    const qrCanvas = document.getElementById("qrCanvas");
+    const currentURL = window.location.href;
+    QRCode.toCanvas(qrCanvas, currentURL, { width: 100 }, function (error) {
+      if (error) console.error(error);
+    });
   </script>
 </body>
 </html>
