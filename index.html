@@ -2,123 +2,22 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<title>Selfie com Vivi 3D</title>
+<title>Vivi AR</title>
+<script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
 <style>
-  body { margin:0; overflow:hidden; background:#000; }
-  canvas { display:block; }
-  #captureBtn {
-    position:absolute; top:12px; right:12px; z-index:10;
-    padding:10px 16px; border:none; border-radius:8px;
-    background:#0b84ff; color:#fff; font-weight:bold; cursor:pointer;
-  }
+  body { margin:0; background:#000; }
+  model-viewer { width:100vw; height:100vh; }
 </style>
 </head>
 <body>
-<button id="captureBtn">📸 Tirar selfie</button>
-
-<script type="module">
-import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.152.2/build/three.module.js';
-import { OrbitControls } from 'https://cdn.jsdelivr.net/npm/three@0.152.2/examples/jsm/controls/OrbitControls.js';
-import { GLTFLoader } from 'https://cdn.jsdelivr.net/npm/three@0.152.2/examples/jsm/loaders/GLTFLoader.js';
-
-// Cena e câmera
-const scene = new THREE.Scene();
-const camera = new THREE.PerspectiveCamera(60, window.innerWidth/window.innerHeight, 0.1, 1000);
-camera.position.set(0, 1.5, 3);
-
-// Renderizador
-const renderer = new THREE.WebGLRenderer({ antialias:true, alpha:true });
-renderer.setSize(window.innerWidth, window.innerHeight);
-document.body.appendChild(renderer.domElement);
-
-// Controles
-const controls = new OrbitControls(camera, renderer.domElement);
-controls.enableDamping = true;
-
-// Luzes
-const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 2);
-hemiLight.position.set(0,20,20);
-scene.add(hemiLight);
-
-const dirLight = new THREE.DirectionalLight(0xffffff, 1);
-dirLight.position.set(5,10,7.5);
-scene.add(dirLight);
-
-// Carregar GLB
-const loader = new GLTFLoader();
-loader.load('vivi.glb',
-  gltf => {
-    const model = gltf.scene;
-    model.scale.set(2,2,2);
-    model.position.set(0,-1,0);
-    scene.add(model);
-
-    const box = new THREE.Box3().setFromObject(model);
-    const center = box.getCenter(new THREE.Vector3());
-    const size = box.getSize(new THREE.Vector3());
-    const maxDim = Math.max(size.x,size.y,size.z);
-
-    camera.position.copy(center);
-    camera.position.z += maxDim*2;
-    camera.lookAt(center);
-    controls.target.copy(center);
-
-    console.log("Modelo carregado!");
-  },
-  undefined,
-  error => console.error("Erro ao carregar modelo:", error)
-);
-
-// Webcam como textura
-const video = document.createElement('video');
-video.autoplay = true; video.muted = true; video.playsInline = true;
-navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } })
-  .then(stream => video.srcObject = stream)
-  .catch(err => console.error('Erro câmera:', err));
-
-const videoTexture = new THREE.VideoTexture(video);
-const videoMaterial = new THREE.MeshBasicMaterial({ map: videoTexture });
-const videoPlane = new THREE.Mesh(new THREE.PlaneGeometry(4,3), videoMaterial);
-videoPlane.position.set(0,1, -2); // posiciona atrás do modelo
-scene.add(videoPlane);
-
-// Responsividade
-window.addEventListener('resize', () => {
-  camera.aspect = window.innerWidth/window.innerHeight;
-  camera.updateProjectionMatrix();
-  renderer.setSize(window.innerWidth, window.innerHeight);
-});
-
-// Loop
-function animate(){
-  requestAnimationFrame(animate);
-  controls.update();
-  renderer.render(scene, camera);
-}
-animate();
-
-// Botão selfie
-document.getElementById('captureBtn').addEventListener('click', () => {
-  const canvas = renderer.domElement.cloneNode(); // pega canvas
-  canvas.width = window.innerWidth;
-  canvas.height = window.innerHeight;
-  const ctx = canvas.getContext('2d');
-
-  // Render do Three.js para imagem
-  ctx.drawImage(renderer.domElement, 0,0,canvas.width,canvas.height);
-
-  // Marca d'água
-  ctx.font = "48px Arial";
-  ctx.fillStyle = "rgba(255,255,255,0.6)";
-  ctx.textAlign = "right";
-  ctx.fillText("Vivari Beach Club", canvas.width-20, canvas.height-20);
-
-  // Salvar
-  const link = document.createElement('a');
-  link.download = 'selfie_vivi.png';
-  link.href = canvas.toDataURL('image/png');
-  link.click();
-});
-</script>
+<model-viewer src="vivi.glb"
+              alt="Vivi 3D"
+              ar
+              ar-modes="webxr scene-viewer quick-look"
+              camera-controls
+              auto-rotate
+              style="background-color:#000;">
+</model-viewer>
 </body>
 </html>
+
