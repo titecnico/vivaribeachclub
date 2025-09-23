@@ -28,9 +28,9 @@
   #captureBtn {
     position:absolute; bottom:30px; left:50%; transform:translateX(-50%);
     z-index:10;
-    padding:28px 36px;
-    border:none; border-radius:20px;
-    background:#0b84ff; color:#fff; font-weight:bold; font-size:26px;
+    padding:36px 48px; /* maior para celulares */
+    border:none; border-radius:24px;
+    background:#0b84ff; color:#fff; font-weight:bold; font-size:32px; /* fonte maior */
     cursor:pointer; box-shadow:0 6px 12px rgba(0,0,0,0.4);
   }
   #qrCode {
@@ -43,10 +43,11 @@
     color:#fff; font-size:18px; font-weight:bold;
     background:rgba(0,0,0,0.4); padding:8px 12px; border-radius:8px;
   }
+
   @media (max-width:600px) {
     #captureBtn {
-      padding:36px 48px;
-      font-size:28px;
+      padding:48px 60px;
+      font-size:36px;
     }
     #rotateHint {
       font-size:16px;
