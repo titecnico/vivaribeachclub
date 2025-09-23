@@ -2,15 +2,17 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<title>Vivi 3D</title>
+<title>Selfie com Vivi 3D</title>
 <script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <style>
-  body { margin: 0; background-color: #000; overflow: hidden; }
-  model-viewer { width: 100vw; height: 100vh; }
+  body { margin:0; background-color:#000; overflow:hidden; }
+  model-viewer { width:100vw; height:100vh; display:block; }
+  #videoCam { position:absolute; top:0; left:0; width:100vw; height:100vh; object-fit:cover; z-index:1; opacity:0.5; }
   #captureBtn {
-    position: absolute; top: 12px; right: 12px; z-index: 10;
-    padding: 10px 16px; border: none; border-radius: 8px;
-    background: #0b84ff; color: #fff; font-weight: bold; cursor: pointer;
+    position:absolute; top:12px; right:12px; z-index:10;
+    padding:10px 16px; border:none; border-radius:8px;
+    background:#0b84ff; color:#fff; font-weight:bold; cursor:pointer;
   }
 </style>
 </head>
@@ -21,42 +23,32 @@
               auto-rotate 
               camera-controls 
               environment-image="neutral"
-              shadow-intensity="1"
-              style="background-color: #000;">
+              shadow-intensity="1">
 </model-viewer>
+
+<video id="videoCam" autoplay muted playsinline></video>
 
 <button id="captureBtn">📸 Tirar selfie</button>
 
 <script>
-  // Webcam selfie
-  const video = document.createElement('video');
-  video.autoplay = true;
-  video.muted = true;
-  video.playsInline = true;
-  video.style.display = 'none';
-  document.body.appendChild(video);
+  const video = document.getElementById('videoCam');
 
-  navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } })
+  navigator.mediaDevices.getUserMedia({ video: { facingMode:"user" } })
     .then(stream => video.srcObject = stream)
     .catch(err => console.error('Erro câmera:', err));
 
-  document.getElementById('captureBtn').addEventListener('click', () => {
-    const w = window.innerWidth, h = window.innerHeight;
-    const canvas = document.createElement('canvas');
-    canvas.width = w;
-    canvas.height = h;
+  document.getElementById('captureBtn').addEventListener('click', async () => {
+    // Captura a tela incluindo vídeo + modelo
+    const container = document.body;
+    const canvas = await html2canvas(container, {useCORS:true, allowTaint:true});
+
     const ctx = canvas.getContext('2d');
 
-    // Vídeo espelhado
-    ctx.save();
-    ctx.translate(w, 0);
-    ctx.scale(-1, 1);
-    ctx.drawImage(video, 0, 0, w, h);
-    ctx.restore();
-
-    // Render do model-viewer
-    const modelViewer = document.getElementById('model');
-    ctx.drawImage(modelViewer, 0, 0, w, h);
+    // Adiciona marca d'água
+    ctx.font = "48px Arial";
+    ctx.fillStyle = "rgba(255,255,255,0.6)";
+    ctx.textAlign = "right";
+    ctx.fillText("Vivari Beach Club", canvas.width - 20, canvas.height - 20);
 
     // Salvar imagem
     const link = document.createElement('a');
