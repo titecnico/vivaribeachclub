@@ -3,12 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <title>Selfie com Vivi 3D</title>
-<script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <style>
-  body { margin:0; background-color:#000; overflow:hidden; }
-  model-viewer { width:100vw; height:100vh; display:block; }
-  #videoCam { position:absolute; top:0; left:0; width:100vw; height:100vh; object-fit:cover; z-index:1; opacity:0.5; }
+  body { margin:0; overflow:hidden; background:#000; }
+  canvas { display:block; }
   #captureBtn {
     position:absolute; top:12px; right:12px; z-index:10;
     padding:10px 16px; border:none; border-radius:8px;
@@ -17,46 +14,111 @@
 </style>
 </head>
 <body>
-
-<model-viewer id="model" src="vivi.glb" 
-              alt="Vivi 3D" 
-              auto-rotate 
-              camera-controls 
-              environment-image="neutral"
-              shadow-intensity="1">
-</model-viewer>
-
-<video id="videoCam" autoplay muted playsinline></video>
-
 <button id="captureBtn">📸 Tirar selfie</button>
 
-<script>
-  const video = document.getElementById('videoCam');
+<script type="module">
+import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.152.2/build/three.module.js';
+import { OrbitControls } from 'https://cdn.jsdelivr.net/npm/three@0.152.2/examples/jsm/controls/OrbitControls.js';
+import { GLTFLoader } from 'https://cdn.jsdelivr.net/npm/three@0.152.2/examples/jsm/loaders/GLTFLoader.js';
 
-  navigator.mediaDevices.getUserMedia({ video: { facingMode:"user" } })
-    .then(stream => video.srcObject = stream)
-    .catch(err => console.error('Erro câmera:', err));
+// Cena e câmera
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(60, window.innerWidth/window.innerHeight, 0.1, 1000);
+camera.position.set(0, 1.5, 3);
 
-  document.getElementById('captureBtn').addEventListener('click', async () => {
-    // Captura a tela incluindo vídeo + modelo
-    const container = document.body;
-    const canvas = await html2canvas(container, {useCORS:true, allowTaint:true});
+// Renderizador
+const renderer = new THREE.WebGLRenderer({ antialias:true, alpha:true });
+renderer.setSize(window.innerWidth, window.innerHeight);
+document.body.appendChild(renderer.domElement);
 
-    const ctx = canvas.getContext('2d');
+// Controles
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true;
 
-    // Adiciona marca d'água
-    ctx.font = "48px Arial";
-    ctx.fillStyle = "rgba(255,255,255,0.6)";
-    ctx.textAlign = "right";
-    ctx.fillText("Vivari Beach Club", canvas.width - 20, canvas.height - 20);
+// Luzes
+const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 2);
+hemiLight.position.set(0,20,20);
+scene.add(hemiLight);
 
-    // Salvar imagem
-    const link = document.createElement('a');
-    link.download = 'selfie_vivi.png';
-    link.href = canvas.toDataURL('image/png');
-    link.click();
-  });
+const dirLight = new THREE.DirectionalLight(0xffffff, 1);
+dirLight.position.set(5,10,7.5);
+scene.add(dirLight);
+
+// Carregar GLB
+const loader = new GLTFLoader();
+loader.load('vivi.glb',
+  gltf => {
+    const model = gltf.scene;
+    model.scale.set(2,2,2);
+    model.position.set(0,-1,0);
+    scene.add(model);
+
+    const box = new THREE.Box3().setFromObject(model);
+    const center = box.getCenter(new THREE.Vector3());
+    const size = box.getSize(new THREE.Vector3());
+    const maxDim = Math.max(size.x,size.y,size.z);
+
+    camera.position.copy(center);
+    camera.position.z += maxDim*2;
+    camera.lookAt(center);
+    controls.target.copy(center);
+
+    console.log("Modelo carregado!");
+  },
+  undefined,
+  error => console.error("Erro ao carregar modelo:", error)
+);
+
+// Webcam como textura
+const video = document.createElement('video');
+video.autoplay = true; video.muted = true; video.playsInline = true;
+navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } })
+  .then(stream => video.srcObject = stream)
+  .catch(err => console.error('Erro câmera:', err));
+
+const videoTexture = new THREE.VideoTexture(video);
+const videoMaterial = new THREE.MeshBasicMaterial({ map: videoTexture });
+const videoPlane = new THREE.Mesh(new THREE.PlaneGeometry(4,3), videoMaterial);
+videoPlane.position.set(0,1, -2); // posiciona atrás do modelo
+scene.add(videoPlane);
+
+// Responsividade
+window.addEventListener('resize', () => {
+  camera.aspect = window.innerWidth/window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+});
+
+// Loop
+function animate(){
+  requestAnimationFrame(animate);
+  controls.update();
+  renderer.render(scene, camera);
+}
+animate();
+
+// Botão selfie
+document.getElementById('captureBtn').addEventListener('click', () => {
+  const canvas = renderer.domElement.cloneNode(); // pega canvas
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+  const ctx = canvas.getContext('2d');
+
+  // Render do Three.js para imagem
+  ctx.drawImage(renderer.domElement, 0,0,canvas.width,canvas.height);
+
+  // Marca d'água
+  ctx.font = "48px Arial";
+  ctx.fillStyle = "rgba(255,255,255,0.6)";
+  ctx.textAlign = "right";
+  ctx.fillText("Vivari Beach Club", canvas.width-20, canvas.height-20);
+
+  // Salvar
+  const link = document.createElement('a');
+  link.download = 'selfie_vivi.png';
+  link.href = canvas.toDataURL('image/png');
+  link.click();
+});
 </script>
-
 </body>
 </html>
