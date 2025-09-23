@@ -9,44 +9,74 @@
   #cameraVideo {
     position:fixed; top:0; left:0; width:100vw; height:100vh;
     object-fit:cover; z-index:0;
-    pointer-events:none; /* permite que toques passem para o model-viewer */
+    pointer-events:none; /* deixa tocar passar para o model-viewer */
+  }
+  #modelContainer {
+    position:fixed; top:0; left:0; width:100vw; height:100vh;
+    z-index:1;
   }
   model-viewer {
-    position:fixed; top:0; left:0; width:100vw; height:100vh;
-    z-index:1; pointer-events:auto; /* agora você consegue girar o modelo */
+    width:80%;      /* diminui a Vivi para caber na tela junto com a pessoa */
+    height:80%;
+    position:absolute;
+    top:10%;        /* centraliza verticalmente */
+    left:10%;       /* centraliza horizontalmente */
+    pointer-events:auto;
     opacity:0.9;
   }
   #captureBtn {
     position:absolute; bottom:30px; left:50%; transform:translateX(-50%);
     z-index:10;
-    padding:20px 28px; border:none; border-radius:16px;
-    background:#0b84ff; color:#fff; font-weight:bold; font-size:22px;
+    padding:28px 36px; border:none; border-radius:20px;
+    background:#0b84ff; color:#fff; font-weight:bold; font-size:26px;
     cursor:pointer; box-shadow:0 6px 12px rgba(0,0,0,0.4);
   }
   #qrCode {
     position:absolute; top:20px; left:20px; z-index:10;
     background:#fff; padding:8px; border-radius:8px;
   }
+  #rotateHint {
+    position:absolute; bottom:100px; left:50%; transform:translateX(-50%);
+    z-index:10;
+    color:#fff; font-size:18px; font-weight:bold;
+    background:rgba(0,0,0,0.4); padding:8px 12px; border-radius:8px;
+  }
+
+  @media (max-width:600px) {
+    #captureBtn {
+      padding:36px 48px;
+      font-size:28px;
+    }
+    #rotateHint {
+      font-size:16px;
+      bottom:120px;
+    }
+  }
 </style>
 </head>
 <body>
 
 <video id="cameraVideo" autoplay playsinline muted></video>
-<model-viewer id="model" src="vivi.glb"
-              alt="Vivi 3D"
-              camera-controls
-              auto-rotate
-              ar
-              ar-modes="webxr scene-viewer quick-look"
-              environment-image="neutral"
-              shadow-intensity="1">
-</model-viewer>
 
+<div id="modelContainer">
+  <model-viewer id="model" src="vivi.glb"
+                alt="Vivi 3D"
+                camera-controls
+                auto-rotate
+                ar
+                ar-modes="webxr scene-viewer quick-look"
+                environment-image="neutral"
+                shadow-intensity="1">
+  </model-viewer>
+</div>
+
+<div id="rotateHint">⬅️ Arraste para girar a Vivi ➡️</div>
 <button id="captureBtn">📸 Tirar Selfie</button>
 <div id="qrCode"></div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <script>
+  // QR Code
   new QRCode(document.getElementById("qrCode"), {
     text: window.location.href,
     width: 120,
@@ -74,7 +104,9 @@
 
       const imgModel = new Image();
       imgModel.onload = () => {
-        ctx.drawImage(imgModel, 0, 0, canvas.width, canvas.height);
+        ctx.drawImage(imgModel, canvas.width*0.1, canvas.height*0.1, canvas.width*0.8, canvas.height*0.8);
+
+        // Marca d’água
         ctx.font = `${Math.floor(canvas.height/20)}px Arial`;
         ctx.fillStyle = "rgba(255,255,255,0.6)";
         ctx.textAlign = "right";
