@@ -48,17 +48,18 @@
 <video id="cameraVideo" autoplay playsinline muted></video>
 
 <div id="modelContainer">
-  <model-viewer id="model" src="vivi.glb"
-                alt="Vivi 3D"
-                camera-controls
-                environment-image="neutral"
-                shadow-intensity="1"
-                field-of-view="45deg"
-                camera-orbit="0deg 90deg auto">
-  </model-viewer>
+      <model-viewer id="model" src="vivi.glb"
+                    alt="Vivi 3D"
+                    camera-controls
+                    environment-image="neutral"
+                    shadow-intensity="1"
+                    field-of-view="60deg"
+                    camera-orbit="0deg 90deg 3m"
+                    camera-target="0m 1m 0m">
+      </model-viewer>
 </div>
 
-<div id="rotateHint">⬅️ Arraste girar a Vivi ➡️</div>
+<div id="rotateHint">⬅️ Arraste ou mova o celular para girar a Vivi ➡️</div>
 
 <div id="controls">
   <button id="switchCamBtn" class="btn">🔄 Trocar Câmera</button>
@@ -158,5 +159,6 @@
 
 </body>
 </html>
+
 
 
