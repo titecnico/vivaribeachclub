@@ -47,7 +47,6 @@
   <model-viewer id="model" src="vivi.glb"
                 alt="Vivi 3D"
                 camera-controls
-                auto-rotate
                 environment-image="neutral"
                 shadow-intensity="1"
                 field-of-view="45deg"
@@ -55,7 +54,7 @@
   </model-viewer>
 </div>
 
-<div id="rotateHint">⬅️ Arraste ou mova o celular para girar a Vivi ➡️</div>
+<div id="rotateHint">⬅️ Mova o celular para girar a Vivi ➡️</div>
 
 <div id="controls">
   <button id="switchCamBtn" class="btn">🔄 Trocar Câmera</button>
@@ -120,6 +119,7 @@
         link.click();
       };
       imgModel.src = modelSnapshot;
+
     } catch(err) {
       console.error("Erro ao capturar selfie:", err);
       alert("Erro ao capturar a selfie.");
@@ -132,13 +132,15 @@
   function handleOrientation(event) {
     let alpha = event.alpha || 0;
     let beta = event.beta || 0;
-    modelViewer.cameraOrbit = `${alpha}deg ${90 - beta}deg auto`;
+
+    // Atualiza apenas o eixo horizontal para girar a Vivi
+    modelViewer.cameraOrbit = `${alpha}deg ${90}deg auto`;
     modelViewer.jumpCameraToGoal();
   }
 
   function initGyro() {
     if (typeof DeviceOrientationEvent.requestPermission === 'function') {
-      // iOS
+      // iOS precisa permissão
       let btn = document.createElement("button");
       btn.innerText = "Ativar Giroscópio";
       btn.className = "btn";
@@ -157,12 +159,13 @@
         }).catch(console.error);
       };
     } else {
-      // Android/PC
+      // Android / Desktop
       window.addEventListener("deviceorientation", handleOrientation);
     }
   }
 
   initGyro();
 </script>
+
 </body>
 </html>
