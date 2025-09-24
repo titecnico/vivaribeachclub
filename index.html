@@ -37,10 +37,6 @@
     color:#fff; font-size:18px; font-weight:bold;
     background:rgba(0,0,0,0.4); padding:8px 12px; border-radius:8px;
   }
-  @media (max-width:600px) {
-    .btn { padding:34px 46px; font-size:28px; }
-    #rotateHint { font-size:16px; bottom:130px; }
-  }
 </style>
 </head>
 <body>
@@ -51,12 +47,11 @@
   <model-viewer id="model" src="vivi.glb"
                 alt="Vivi 3D"
                 camera-controls
+                auto-rotate
                 environment-image="neutral"
                 shadow-intensity="1"
-                field-of-view="65deg"
-                camera-orbit="0deg 90deg 4m"
-                camera-target="0m 1m 0m"
-                bounds="tight">
+                field-of-view="45deg"
+                camera-orbit="0deg 90deg auto">
   </model-viewer>
 </div>
 
@@ -64,7 +59,7 @@
 
 <div id="controls">
   <button id="switchCamBtn" class="btn">🔄 Trocar Câmera</button>
-  <button id="captureBtn" class="btn">📸 Tirar Foto</button>
+  <button id="captureBtn" class="btn">📸 Tirar Selfie</button>
 </div>
 
 <script>
@@ -125,7 +120,6 @@
         link.click();
       };
       imgModel.src = modelSnapshot;
-
     } catch(err) {
       console.error("Erro ao capturar selfie:", err);
       alert("Erro ao capturar a selfie.");
@@ -138,14 +132,13 @@
   function handleOrientation(event) {
     let alpha = event.alpha || 0;
     let beta = event.beta || 0;
-    let gamma = event.gamma || 0;
     modelViewer.cameraOrbit = `${alpha}deg ${90 - beta}deg auto`;
     modelViewer.jumpCameraToGoal();
   }
 
-  if (window.DeviceOrientationEvent) {
+  function initGyro() {
     if (typeof DeviceOrientationEvent.requestPermission === 'function') {
-      // iOS precisa permissão
+      // iOS
       let btn = document.createElement("button");
       btn.innerText = "Ativar Giroscópio";
       btn.className = "btn";
@@ -164,12 +157,12 @@
         }).catch(console.error);
       };
     } else {
+      // Android/PC
       window.addEventListener("deviceorientation", handleOrientation);
     }
-  } else {
-    console.log("Dispositivo não suporta giroscópio");
   }
-</script>
 
+  initGyro();
+</script>
 </body>
 </html>
