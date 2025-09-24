@@ -50,13 +50,15 @@
 <div id="modelContainer">
   <model-viewer id="model" src="vivi.glb"
                 alt="Vivi 3D"
-                camera-controls                
+                camera-controls
                 environment-image="neutral"
-                shadow-intensity="1">
+                shadow-intensity="1"
+                field-of-view="45deg"
+                camera-orbit="0deg 90deg auto">
   </model-viewer>
 </div>
 
-<div id="rotateHint">⬅️ Arraste para girar a Vivi ➡️</div>
+<div id="rotateHint">⬅️ Arraste ou mova o celular para girar a Vivi ➡️</div>
 
 <div id="controls">
   <button id="switchCamBtn" class="btn">🔄 Trocar Câmera</button>
@@ -137,8 +139,22 @@
   });
 
   startCamera();
+
+  // --- Controle pelo giroscópio ---
+  if (window.DeviceOrientationEvent) {
+    window.addEventListener("deviceorientation", (event) => {
+      let alpha = event.alpha; // eixo Z (gira em torno)
+      let beta  = event.beta;  // eixo X (inclinação frente/trás)
+
+      if (alpha !== null && beta !== null) {
+        // gira horizontal pelo alpha, e limita vertical pelo beta
+        modelViewer.cameraOrbit = `${alpha}deg ${90 - beta}deg auto`;
+      }
+    }, true);
+  } else {
+    console.log("Dispositivo não suporta giroscópio.");
+  }
 </script>
 
 </body>
 </html>
-
