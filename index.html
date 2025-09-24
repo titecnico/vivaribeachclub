@@ -48,23 +48,23 @@
 <video id="cameraVideo" autoplay playsinline muted></video>
 
 <div id="modelContainer">
-     <model-viewer id="model" src="vivi.glb"
-              alt="Vivi 3D"
-              camera-controls
-              environment-image="neutral"
-              shadow-intensity="1"
-              field-of-view="30deg"
-              camera-orbit="0deg 90deg 3m"
-              camera-target="0m 1m 0m"
-              bounds="tight">
-      </model-viewer>
+  <model-viewer id="model" src="vivi.glb"
+                alt="Vivi 3D"
+                camera-controls
+                environment-image="neutral"
+                shadow-intensity="1"
+                field-of-view="65deg"
+                camera-orbit="0deg 90deg 4m"
+                camera-target="0m 1m 0m"
+                bounds="tight">
+  </model-viewer>
 </div>
 
 <div id="rotateHint">⬅️ Arraste ou mova o celular para girar a Vivi ➡️</div>
 
 <div id="controls">
   <button id="switchCamBtn" class="btn">🔄 Trocar Câmera</button>
-  <button id="captureBtn" class="btn">📸 Tirar Selfie</button>
+  <button id="captureBtn" class="btn">📸 Tirar Foto</button>
 </div>
 
 <script>
@@ -97,16 +97,12 @@
 
   captureBtn.addEventListener('click', async () => {
     try {
-      // snapshot da Vivi
       const modelSnapshot = await modelViewer.toDataURL();
-
-      // canvas final
       const canvas = document.createElement('canvas');
       canvas.width = window.innerWidth;
       canvas.height = window.innerHeight;
       const ctx = canvas.getContext('2d');
 
-      // desenha vídeo
       if (useFrontCamera) {
         ctx.translate(canvas.width, 0);
         ctx.scale(-1, 1);
@@ -115,18 +111,14 @@
 
       ctx.setTransform(1,0,0,1,0,0);
 
-      // desenha Vivi
       const imgModel = new Image();
       imgModel.onload = () => {
         ctx.drawImage(imgModel, canvas.width*0.15, canvas.height*0.15, canvas.width*0.7, canvas.height*0.7);
-
-        // marca d’água
         ctx.font = `${Math.floor(canvas.height/18)}px Arial Black`;
         ctx.fillStyle = "rgba(255,255,255,0.7)";
         ctx.textAlign = "center";
         ctx.fillText("Vivari Beach Club", canvas.width/2, canvas.height-40);
 
-        // salva
         const link = document.createElement('a');
         link.download = 'selfie_vivi.png';
         link.href = canvas.toDataURL('image/png');
@@ -142,22 +134,42 @@
 
   startCamera();
 
-  // --- Controle pelo giroscópio ---
-  if (window.DeviceOrientationEvent) {
-    window.addEventListener("deviceorientation", (event) => {
-      let alpha = event.alpha; // eixo Z (gira em torno)
-      let beta  = event.beta;  // eixo X (inclinação frente/trás)
+  // --- Giroscópio ---
+  function handleOrientation(event) {
+    let alpha = event.alpha || 0;
+    let beta = event.beta || 0;
+    let gamma = event.gamma || 0;
+    modelViewer.cameraOrbit = `${alpha}deg ${90 - beta}deg auto`;
+    modelViewer.jumpCameraToGoal();
+  }
 
-      if (alpha !== null && beta !== null) {
-        // gira horizontal pelo alpha, e limita vertical pelo beta
-        modelViewer.cameraOrbit = `${alpha}deg ${90 - beta}deg auto`;
-      }
-    }, true);
+  if (window.DeviceOrientationEvent) {
+    if (typeof DeviceOrientationEvent.requestPermission === 'function') {
+      // iOS precisa permissão
+      let btn = document.createElement("button");
+      btn.innerText = "Ativar Giroscópio";
+      btn.className = "btn";
+      btn.style.position = "absolute";
+      btn.style.top = "50%";
+      btn.style.left = "50%";
+      btn.style.transform = "translate(-50%, -50%)";
+      document.body.appendChild(btn);
+
+      btn.onclick = () => {
+        DeviceOrientationEvent.requestPermission().then(response => {
+          if (response === "granted") {
+            window.addEventListener("deviceorientation", handleOrientation);
+            btn.remove();
+          }
+        }).catch(console.error);
+      };
+    } else {
+      window.addEventListener("deviceorientation", handleOrientation);
+    }
   } else {
-    console.log("Dispositivo não suporta giroscópio.");
+    console.log("Dispositivo não suporta giroscópio");
   }
 </script>
 
 </body>
 </html>
-
