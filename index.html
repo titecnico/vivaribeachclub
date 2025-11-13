@@ -42,22 +42,35 @@
       background: #005ecb;
     }
 
-    /* === BOTÃO AR DESTACADO === */
-  #arBtn {
-    background:linear-gradient(135deg, #0b84ff, #0059ff);
-    padding:26px 60px;
-    font-size:26px;
-    border-radius:20px;
+ /* === BOTÃO AR MAIOR E DESTACADO === */
+  #btnAR {
+    background:linear-gradient(135deg, #007bff, #003cff);
+    padding:40px 80px;          /* tamanho grande do botão */
+    font-size:32px;             /* fonte grande e legível */
+    border-radius:28px;         /* bordas suaves */
     animation: pulse 1.5s infinite alternate;
+    box-shadow:0 0 30px rgba(0,123,255,0.7);
   }
 
+  @keyframes pulse {
+    from { box-shadow:0 0 10px rgba(0,123,255,0.5); }
+    to { box-shadow:0 0 40px rgba(0,123,255,1); }
+  }
+
+  #rotateHint {
+    position:absolute; bottom:100px; left:50%; transform:translateX(-50%);
+    z-index:10;
+    color:#fff; font-size:18px; font-weight:bold;
+    background:rgba(0,0,0,0.4); padding:8px 12px; border-radius:8px;
+    display:none;
+  }
 
   </style>
 </head>
 <body>
 
   <!-- Modelo 3D com AR -->
- <a href="#" id="btnAR"> <model-viewer
+ <model-viewer
     id="modeloVivi"
     src="vivi.glb"
     alt="Modelo 3D Vivi"
@@ -70,7 +83,7 @@
     auto-rotate
     environment-image="neutral"
     style="background-color: transparent;"
-  ></model-viewer></a>
+  ></model-viewer>
 
   <!-- Botões -->
   <div id="controls">
@@ -112,6 +125,7 @@
 
 </body>
 </html>
+
 
 
 
