@@ -9,18 +9,18 @@
   #cameraVideo {
     position:fixed; top:0; left:0; width:100vw; height:100vh;
     object-fit:cover; z-index:0;
-    pointer-events:none; /* deixa tocar passar para o model-viewer */
+    pointer-events:none; /* deixa o toque passar para o model-viewer */
   }
   #modelContainer {
     position:fixed; top:0; left:0; width:100vw; height:100vh;
     z-index:1;
   }
   model-viewer {
-    width:80%;      /* diminui a Vivi para caber na tela junto com a pessoa */
+    width:80%;      /* tamanho original mantido */
     height:80%;
     position:absolute;
-    top:10%;        /* centraliza verticalmente */
-    left:10%;       /* centraliza horizontalmente */
+    top:10%;        /* centralização vertical */
+    left:10%;       /* centralização horizontal */
     pointer-events:auto;
     opacity:0.9;
   }
@@ -65,7 +65,11 @@
                 ar
                 ar-modes="webxr scene-viewer quick-look"
                 environment-image="neutral"
-                shadow-intensity="1">
+                shadow-intensity="1"
+                shadow-softness="0.8"
+                exposure="1.2"
+                disable-zoom
+                auto-rotate="false">
   </model-viewer>
 </div>
 
@@ -127,4 +131,3 @@
 
 </body>
 </html>
-
