@@ -70,7 +70,8 @@
                 environment-image="neutral"
                 shadow-intensity="1"
                 shadow-softness="0.8"
-                exposure="1.2">
+                exposure="1.2"
+                autoplay>
   </model-viewer>
 </div>
 
@@ -85,7 +86,7 @@
   const modelViewer = document.getElementById('model');
   let usingFrontCamera = true;
 
-  // Função para ligar a câmera
+  // Inicia câmera
   async function startCamera() {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
@@ -142,6 +143,22 @@
       console.error("Erro ao capturar selfie:", err);
       alert("Não foi possível capturar a selfie. Use um celular moderno com AR.");
     }
+  });
+
+  // ======== ENTRAR AUTOMATICAMENTE EM AR ========
+  window.addEventListener('load', async () => {
+    // Alguns navegadores exigem interação, então tentamos disparar após toque
+    const startAR = async () => {
+      try {
+        await modelViewer.activateAR();
+      } catch (err) {
+        console.warn('AR automático não suportado, modo 3D será usado.');
+      }
+      window.removeEventListener('click', startAR);
+      window.removeEventListener('touchstart', startAR);
+    };
+    window.addEventListener('click', startAR);
+    window.addEventListener('touchstart', startAR);
   });
 </script>
 
