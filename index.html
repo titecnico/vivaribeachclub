@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -6,119 +5,240 @@
 <title>Selfie AR - Vivari Beach Club</title>
 <script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
 <style>
-  body {
-    margin:0; background:#000; overflow:hidden;
-    font-family:Arial,sans-serif;
+  body { margin:0; background:#000; overflow:hidden; font-family:Arial,sans-serif; }
+
+  /* vídeo de fundo (feed da câmera) */
+  #cameraVideo {
+    position:fixed;
+    top:0; left:0;
+    width:100vw; height:100vh;
+    object-fit:cover;
+    z-index:0;
+    background: #000;
   }
 
+  /* model-viewer ocupando a tela (transparente para mostrar o vídeo atrás) */
   model-viewer {
     width:100vw;
     height:100vh;
     position:fixed;
     top:0; left:0;
     z-index:1;
+    background: transparent !important;     /* tenta deixar o canvas transparente */
+    --poster-color: transparent;
+    pointer-events:auto;
   }
 
+  /* controles */
   #captureBtn, #switchCameraBtn {
     position:absolute;
     z-index:10;
     padding:20px 30px;
     border:none; border-radius:20px;
-    background:#0b84ff; color:#fff;
-    font-weight:bold; font-size:20px;
-    cursor:pointer;
-    box-shadow:0 6px 12px rgba(0,0,0,0.4);
+    background:#0b84ff; color:#fff; font-weight:bold; font-size:20px;
+    cursor:pointer; box-shadow:0 6px 12px rgba(0,0,0,0.4);
   }
-
-  #captureBtn {
-    bottom:30px; left:50%; transform:translateX(-50%);
-  }
-
-  #switchCameraBtn {
-    top:20px; right:20px;
-  }
+  #captureBtn { bottom:30px; left:50%; transform:translateX(-50%); }
+  #switchCameraBtn { top:20px; right:20px; }
 
   #rotateHint {
-    position:absolute;
-    bottom:100px;
-    left:50%;
-    transform:translateX(-50%);
-    z-index:10;
-    color:#fff; font-size:18px; font-weight:bold;
-    background:rgba(0,0,0,0.4);
-    padding:8px 12px; border-radius:8px;
+    position:absolute; bottom:100px; left:50%; transform:translateX(-50%);
+    z-index:10; color:#fff; font-size:18px; font-weight:bold;
+    background:rgba(0,0,0,0.4); padding:8px 12px; border-radius:8px;
+  }
+
+  /* overlay inicial necessário para permissões (touch) */
+  #startOverlay {
+    position:fixed; inset:0; z-index:30;
+    display:flex; align-items:center; justify-content:center;
+    background: linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.6));
+    color:#fff; font-size:22px;
+  }
+  #startOverlay button {
+    padding:18px 30px; font-size:20px; border-radius:14px;
+    border:none; background:#0b84ff; color:#fff; cursor:pointer;
   }
 
   @media (max-width:600px) {
-    #captureBtn {
-      padding:30px 40px;
-      font-size:24px;
-    }
-    #rotateHint {
-      font-size:16px;
-      bottom:120px;
-    }
+    #captureBtn { padding:30px 40px; font-size:24px; }
+    #rotateHint { font-size:16px; bottom:120px; }
   }
 </style>
 </head>
 <body>
 
-<!-- === MODEL VIEWER EM AR === -->
-<model-viewer
-  id="model"
+<!-- vídeo de fundo -->
+<video id="cameraVideo" autoplay playsinline muted></video>
+
+<!-- model-viewer (transparente) -->
+<model-viewer id="model"
   src="vivi.glb"
   alt="Vivi 3D"
   ar
   ar-modes="webxr scene-viewer quick-look"
   ar-scale="auto"
   camera-controls
-  auto-rotate
   environment-image="neutral"
   shadow-intensity="1"
   shadow-softness="0.8"
   exposure="1.2"
-  autoplay>
+  style="background:transparent;">
 </model-viewer>
 
-<!-- === ELEMENTOS DA INTERFACE === -->
+<!-- UI -->
 <div id="rotateHint">⬅️ Arraste para girar a Vivi ➡️</div>
-<button id="captureBtn">📸 Tirar Foto</button>
+<button id="captureBtn">📸 Tirar Selfie</button>
 <button id="switchCameraBtn">🔄 Trocar Câmera</button>
 
+<!-- Overlay para iniciar (obrigatório para permissões em muitos navegadores) -->
+<div id="startOverlay">
+  <div style="text-align:center">
+    <div style="margin-bottom:16px; font-weight:bold; font-size:20px;">
+      Toque para iniciar (permitir câmera e AR)
+    </div>
+    <button id="startBtn">Iniciar</button>
+  </div>
+</div>
+
 <script>
+  const startOverlay = document.getElementById('startOverlay');
+  const startBtn = document.getElementById('startBtn');
+  const video = document.getElementById('cameraVideo');
   const modelViewer = document.getElementById('model');
   const captureBtn = document.getElementById('captureBtn');
   const switchCameraBtn = document.getElementById('switchCameraBtn');
 
-  // Ativa AR automaticamente assim que possível
-  window.addEventListener('load', async () => {
+  let usingFrontCamera = true;
+  let currentStream = null;
+
+  // função para iniciar feed de câmera (facingMode: user/environment)
+  async function startCamera() {
     try {
-      if (modelViewer.canActivateAR) {
-        await modelViewer.activateAR();
+      if (currentStream) {
+        currentStream.getTracks().forEach(t => t.stop());
+        currentStream = null;
       }
+      const constraints = { video: { facingMode: usingFrontCamera ? "user" : "environment" } };
+      currentStream = await navigator.mediaDevices.getUserMedia(constraints);
+      video.srcObject = currentStream;
+      // espelhar vídeo frontal
+      video.style.transform = usingFrontCamera ? "scaleX(-1)" : "scaleX(1)";
     } catch (err) {
-      console.warn("AR automático não disponível:", err);
+      console.error('Erro ao acessar câmera:', err);
+      alert('Erro ao acessar câmera: ' + (err && err.message ? err.message : err));
     }
-  });
+  }
 
-  // Botão de captura (aviso para usar o botão nativo do AR)
-  captureBtn.addEventListener('click', () => {
-    alert('📸 Use o botão de foto do visualizador de AR para tirar a foto com a Vivi!');
-  });
-
-  // Troca de câmera (funciona apenas em AR suportado por WebXR)
-  switchCameraBtn.addEventListener('click', async () => {
+  // Tentar ativar AR (após interação)
+  async function tryActivateAR() {
     try {
       if (modelViewer.canActivateAR) {
-        await modelViewer.activateAR();
-      } else {
-        alert('Troca de câmera disponível apenas em dispositivos com WebXR.');
+        await modelViewer.activateAR(); // abre Scene Viewer / Quick Look / WebXR
+        // quando o usuário voltar do viewer, o model-viewer continuará no DOM
       }
     } catch (e) {
-      console.warn('Erro ao alternar câmera:', e);
+      console.warn('Não foi possível ativar AR automaticamente:', e);
+    }
+  }
+
+  // Handler do botão "Iniciar" — necessário para permissões em mobile
+  startBtn.addEventListener('click', async () => {
+    // 1) iniciar câmera (isso evita o fundo preto quando AR não abrir)
+    await startCamera();
+    // 2) tentar ativar AR (só irá abrir se o dispositivo suportar)
+    await tryActivateAR();
+    // 3) fechar overlay
+    startOverlay.style.display = 'none';
+  });
+
+  // Alternar câmera
+  switchCameraBtn.addEventListener('click', async () => {
+    usingFrontCamera = !usingFrontCamera;
+    await startCamera();
+    // algumas implementações WebXR podem requerer re-entrada em AR; tentamos novamente
+    try { if (modelViewer.canActivateAR) await modelViewer.activateAR(); } catch(e){/*silent*/ }
+  });
+
+  // Captura foto: combina frame do vídeo + snapshot do model-viewer
+  captureBtn.addEventListener('click', async () => {
+    try {
+      // se o usuário estiver no AR nativo (Scene Viewer / Quick Look), o conteúdo AR não está no DOM
+      // e não conseguimos capturar o ambiente + modelo. Informamos isso:
+      if (modelViewer && modelViewer.getAttribute && modelViewer.getAttribute('ar-status') === 'presenting') {
+        alert('Você está no modo AR nativo — use o botão de foto do visualizador AR do seu dispositivo para capturar a imagem.');
+        return;
+      }
+
+      // snapshot do model-viewer (render do 3D em DOM)
+      const modelDataUrl = await modelViewer.toDataURL();
+
+      // cria canvas do tamanho da tela
+      const canvas = document.createElement('canvas');
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+      const ctx = canvas.getContext('2d');
+
+      // desenha frame do vídeo (fundo)
+      if (usingFrontCamera) {
+        ctx.save();
+        ctx.translate(canvas.width, 0);
+        ctx.scale(-1, 1);
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        ctx.restore();
+      } else {
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      }
+
+      // desenha o modelo sobre o vídeo
+      const imgModel = new Image();
+      imgModel.onload = () => {
+        // posiciona conforme seu layout original (cobre 80% central)
+        ctx.drawImage(imgModel, canvas.width*0.1, canvas.height*0.1, canvas.width*0.8, canvas.height*0.8);
+
+        // marca d'água
+        ctx.font = `${Math.floor(canvas.height/20)}px Arial`;
+        ctx.fillStyle = "rgba(255,255,255,0.6)";
+        ctx.textAlign = "right";
+        ctx.fillText("Vivari Beach Club", canvas.width-20, canvas.height-20);
+
+        // download
+        const link = document.createElement('a');
+        link.download = 'selfie_vivi.png';
+        link.href = canvas.toDataURL('image/png');
+        link.click();
+      };
+      imgModel.src = modelDataUrl;
+
+    } catch (err) {
+      console.error('Erro durante captura:', err);
+      alert('Não foi possível capturar a selfie. ' + (err && err.message ? err.message : ''));
     }
   });
-</script>
 
+  // Proteção: caso o usuário feche o overlay sem tocar no Iniciar (ex.: desktop),
+  // iniciamos a câmera automaticamente quando houver um primeiro clique/touch
+  window.addEventListener('click', async function once() {
+    if (startOverlay.style.display !== 'none') {
+      // dispara o mesmo fluxo do startBtn
+      await startCamera();
+      await tryActivateAR();
+      startOverlay.style.display = 'none';
+    }
+    window.removeEventListener('click', once);
+  });
+
+  // Se quiser, auto iniciar a câmera no load quando permissões já concedidas (não confiável)
+  (async function tryAutoStart() {
+    try {
+      const perms = await navigator.permissions.query({ name: 'camera' }).catch(()=>null);
+      if (perms && perms.state === 'granted') {
+        await startCamera();
+        // não ativamos AR sem interação mesmo se já permitido
+        startOverlay.style.display = 'none';
+      }
+    } catch(e){/*ignore*/}
+  })();
+
+</script>
 </body>
 </html>
