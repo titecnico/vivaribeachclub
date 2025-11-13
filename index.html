@@ -1,166 +1,82 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
-<head>
-<meta charset="UTF-8">
-<title>Selfie AR - Vivari Beach Club</title>
-<script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
-<style>
-  body { margin:0; background:#000; overflow:hidden; font-family:Arial,sans-serif; }
-  #cameraVideo {
-    position:fixed; top:0; left:0; width:100vw; height:100vh;
-    object-fit:cover; z-index:0;
-    pointer-events:none;
-  }
-  #modelContainer {
-    position:fixed; top:0; left:0; width:100vw; height:100vh;
-    z-index:1;
-  }
-  model-viewer {
-    width:80%;
-    height:80%;
-    position:absolute;
-    top:10%;
-    left:10%;
-    pointer-events:auto;
-    opacity:0.9;
-  }
-  #captureBtn, #switchCameraBtn {
-    position:absolute;
-    z-index:10;
-    padding:20px 30px;
-    border:none; border-radius:20px;
-    background:#0b84ff; color:#fff; font-weight:bold; font-size:20px;
-    cursor:pointer; box-shadow:0 6px 12px rgba(0,0,0,0.4);
-  }
-  #captureBtn {
-    bottom:30px; left:50%; transform:translateX(-50%);
-  }
-  #switchCameraBtn {
-    top:20px; right:20px;
-  }
-  #rotateHint {
-    position:absolute; bottom:100px; left:50%; transform:translateX(-50%);
-    z-index:10;
-    color:#fff; font-size:18px; font-weight:bold;
-    background:rgba(0,0,0,0.4); padding:8px 12px; border-radius:8px;
-  }
-
-  @media (max-width:600px) {
-    #captureBtn {
-      padding:30px 40px;
-      font-size:24px;
-    }
-    #rotateHint {
-      font-size:16px;
-      bottom:120px;
-    }
-  }
-</style>
-</head>
-<body>
-
-<video id="cameraVideo" autoplay playsinline muted></video>
-
-<div id="modelContainer">
-  <model-viewer id="model" src="vivi.glb"
-                alt="Vivi 3D"
-                camera-controls
-                ar
-                ar-modes="webxr scene-viewer quick-look"
-                environment-image="neutral"
-                shadow-intensity="1"
-                shadow-softness="0.8"
-                exposure="1.2"
-                autoplay>
-  </model-viewer>
-</div>
-
-<div id="rotateHint">⬅️ Arraste para girar a Vivi ➡️</div>
-<button id="captureBtn">📸 Tirar Selfie</button>
-<button id="switchCameraBtn">🔄 Trocar Câmera</button>
-
-<script>
-  const video = document.getElementById('cameraVideo');
-  const captureBtn = document.getElementById('captureBtn');
-  const switchCameraBtn = document.getElementById('switchCameraBtn');
-  const modelViewer = document.getElementById('model');
-  let usingFrontCamera = true;
-
-  // Inicia câmera
-  async function startCamera() {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: usingFrontCamera ? "user" : "environment" }
-      });
-      video.srcObject = stream;
-    } catch (err) {
-      console.error('Erro ao acessar câmera:', err);
-      alert('Erro ao acessar câmera.');
-    }
-  }
-
-  // Inicializa câmera frontal
-  startCamera();
-
-  // Alternar entre câmeras
-  switchCameraBtn.addEventListener('click', () => {
-    usingFrontCamera = !usingFrontCamera;
-    startCamera();
-  });
-
-  // Captura selfie com modelo
-  captureBtn.addEventListener('click', async () => {
-    try {
-      const modelSnapshot = await modelViewer.toDataURL();
-      const canvas = document.createElement('canvas');
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight;
-      const ctx = canvas.getContext('2d');
-
-      // Fundo: imagem da câmera
-      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-
-      // Modelo 3D
-      const imgModel = new Image();
-      imgModel.onload = () => {
-        ctx.drawImage(imgModel, canvas.width*0.1, canvas.height*0.1, canvas.width*0.8, canvas.height*0.8);
-
-        // Marca d’água
-        ctx.font = `${Math.floor(canvas.height/20)}px Arial`;
-        ctx.fillStyle = "rgba(255,255,255,0.6)";
-        ctx.textAlign = "right";
-        ctx.fillText("Vivari Beach Club", canvas.width-20, canvas.height-20);
-
-        // Baixar imagem
-        const link = document.createElement('a');
-        link.download = 'selfie_vivi.png';
-        link.href = canvas.toDataURL('image/png');
-        link.click();
-      };
-      imgModel.src = modelSnapshot;
-
-    } catch(err) {
-      console.error("Erro ao capturar selfie:", err);
-      alert("Não foi possível capturar a selfie. Use um celular moderno com AR.");
-    }
-  });
-
-  // ======== ENTRAR AUTOMATICAMENTE EM AR ========
-  window.addEventListener('load', async () => {
-    // Alguns navegadores exigem interação, então tentamos disparar após toque
-    const startAR = async () => {
-      try {
-        await modelViewer.activateAR();
-      } catch (err) {
-        console.warn('AR automático não suportado, modo 3D será usado.');
+  <head>
+    <meta charset="UTF-8">
+    <title>Tartaruga 3D AR</title>
+    <script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
+    <style>
+      html, body {
+        margin: 0;
+        height: 100%;
+        overflow: hidden;
+        background: #000;
       }
-      window.removeEventListener('click', startAR);
-      window.removeEventListener('touchstart', startAR);
-    };
-    window.addEventListener('click', startAR);
-    window.addEventListener('touchstart', startAR);
-  });
-</script>
 
-</body>
+      model-viewer {
+        width: 100%;
+        height: 100%;
+      }
+
+      .photo-btn {
+        position: fixed;
+        bottom: 30px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: rgba(255, 255, 255, 0.9);
+        color: #000;
+        border: none;
+        border-radius: 12px;
+        padding: 12px 20px;
+        font-size: 18px;
+        font-weight: bold;
+        cursor: pointer;
+        z-index: 20;
+        transition: 0.3s;
+      }
+
+      .photo-btn:hover {
+        background: #f0c93d;
+      }
+
+      canvas {
+        width: 100%;
+        height: 100%;
+      }
+    </style>
+  </head>
+  <body>
+    <model-viewer
+      id="tartaruga3d"
+      src="tartaruga.glb"
+      ar
+      ar-modes="webxr scene-viewer quick-look"
+      ar-scale="auto"
+      camera-controls
+      auto-rotate
+      environment-image="neutral"
+      shadow-intensity="1"
+      shadow-softness="0.8"
+      exposure="1.2"
+      autoplay
+      style="width: 100%; height: 100%;">
+    </model-viewer>
+
+    <button class="photo-btn" id="takePhoto">📸 Tirar Foto</button>
+
+    <script>
+      const takePhotoButton = document.getElementById('takePhoto');
+
+      takePhotoButton.addEventListener('click', async () => {
+        const canvas = await html2canvas(document.body, { useCORS: true });
+        const image = canvas.toDataURL("image/png");
+        const link = document.createElement('a');
+        link.download = 'foto_tartaruga_ar.png';
+        link.href = image;
+        link.click();
+      });
+    </script>
+
+    <!-- Biblioteca para capturar a tela -->
+    <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+  </body>
 </html>
