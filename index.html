@@ -37,40 +37,57 @@
     color:#fff; font-size:18px; font-weight:bold;
     background:rgba(0,0,0,0.4); padding:8px 12px; border-radius:8px;
   }
+  @media (max-width:600px) {
+    .btn { padding:34px 46px; font-size:28px; }
+    #rotateHint { font-size:16px; bottom:130px; }
+  }
 </style>
 </head>
 <body>
 
+<!-- 📷 Câmera normal (modo selfie) -->
 <video id="cameraVideo" autoplay playsinline muted></video>
 
+<!-- 🐢 Vivi 3D com suporte AR -->
 <div id="modelContainer">
-<model-viewer id="model" src="vivi.glb"
-              alt="Vivi 3D"
-              camera-controls
-              disable-zoom
-              disable-pan
-              environment-image="neutral"
-              shadow-intensity="1"
-              exposure="1"
-              field-of-view="30deg"
-              camera-orbit="0deg 75deg 2.5m"
-              interaction-prompt="none">
-</model-viewer>
-
+  <model-viewer id="model" src="vivi.glb"
+                alt="Vivi 3D"
+                camera-controls
+                disable-zoom
+                disable-pan
+                environment-image="neutral"
+                shadow-intensity="1"
+                shadow-softness="0.8"
+                exposure="1.2"
+                field-of-view="30deg"
+                camera-orbit="0deg 75deg 2.5m"
+                interaction-prompt="none"
+                ar
+                ar-modes="scene-viewer webxr quick-look"
+                ar-scale="fixed"
+                ar-placement="floor"
+                ar-status="not-presenting">
+  </model-viewer>
 </div>
 
-<div id="rotateHint">⬅️ Mova o celular para girar a Vivi ➡️</div>
+<!-- 💡 Texto guia -->
+<div id="rotateHint">⬅️ Arraste para girar a Vivi ➡️</div>
 
+<!-- 🎛️ Botões -->
 <div id="controls">
   <button id="switchCamBtn" class="btn">🔄 Trocar Câmera</button>
   <button id="captureBtn" class="btn">📸 Tirar Selfie</button>
+  <button id="arBtn" class="btn">🕶️ Ver em AR</button>
 </div>
 
 <script>
   const video = document.getElementById('cameraVideo');
+  const modelViewer = document.getElementById('model');
+  const arBtn = document.getElementById('arBtn');
   let useFrontCamera = true;
   let currentStream;
 
+  // ======== Inicia câmera normal (modo selfie) ========
   async function startCamera() {
     if (currentStream) {
       currentStream.getTracks().forEach(track => track.stop());
@@ -91,35 +108,51 @@
     startCamera();
   });
 
+  // ======== Modo AR (Realidade Aumentada) ========
+  arBtn.addEventListener('click', () => {
+    if (modelViewer.canActivateAR) {
+      modelViewer.activateAR(); // abre o modo AR nativo
+    } else {
+      alert("Seu dispositivo não suporta AR nativo 😢");
+    }
+  });
+
+  // ======== Captura Selfie ========
   const captureBtn = document.getElementById('captureBtn');
-  const modelViewer = document.getElementById('model');
 
   captureBtn.addEventListener('click', async () => {
     try {
+      // snapshot da Vivi (modelo 3D)
       const modelSnapshot = await modelViewer.toDataURL();
+
+      // cria canvas final
       const canvas = document.createElement('canvas');
       canvas.width = window.innerWidth;
       canvas.height = window.innerHeight;
       const ctx = canvas.getContext('2d');
 
+      // desenha vídeo da câmera
       if (useFrontCamera) {
         ctx.translate(canvas.width, 0);
         ctx.scale(-1, 1);
       }
       ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-
       ctx.setTransform(1,0,0,1,0,0);
 
+      // desenha o modelo 3D capturado
       const imgModel = new Image();
       imgModel.onload = () => {
         ctx.drawImage(imgModel, canvas.width*0.15, canvas.height*0.15, canvas.width*0.7, canvas.height*0.7);
+
+        // marca d’água Vivari
         ctx.font = `${Math.floor(canvas.height/18)}px Arial Black`;
-        ctx.fillStyle = "rgba(255,255,255,0.7)";
+        ctx.fillStyle = "rgba(255,255,255,0.8)";
         ctx.textAlign = "center";
         ctx.fillText("Vivari Beach Club", canvas.width/2, canvas.height-40);
 
+        // baixa a selfie
         const link = document.createElement('a');
-        link.download = 'selfie_vivi.png';
+        link.download = 'selfie_vivari.png';
         link.href = canvas.toDataURL('image/png');
         link.click();
       };
@@ -132,46 +165,7 @@
   });
 
   startCamera();
-
-  // --- Giroscópio ---
-  function handleOrientation(event) {
-    let alpha = event.alpha || 0;
-    let beta = event.beta || 0;
-
-    // Atualiza apenas o eixo horizontal para girar a Vivi
-    modelViewer.cameraOrbit = `${alpha}deg ${90}deg auto`;
-    modelViewer.jumpCameraToGoal();
-  }
-
-  function initGyro() {
-    if (typeof DeviceOrientationEvent.requestPermission === 'function') {
-      // iOS precisa permissão
-      let btn = document.createElement("button");
-      btn.innerText = "Ativar Giroscópio";
-      btn.className = "btn";
-      btn.style.position = "absolute";
-      btn.style.top = "50%";
-      btn.style.left = "50%";
-      btn.style.transform = "translate(-50%, -50%)";
-      document.body.appendChild(btn);
-
-      btn.onclick = () => {
-        DeviceOrientationEvent.requestPermission().then(response => {
-          if (response === "granted") {
-            window.addEventListener("deviceorientation", handleOrientation);
-            btn.remove();
-          }
-        }).catch(console.error);
-      };
-    } else {
-      // Android / Desktop
-      window.addEventListener("deviceorientation", handleOrientation);
-    }
-  }
-
-  initGyro();
 </script>
 
 </body>
 </html>
-
