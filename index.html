@@ -1,183 +1,103 @@
-<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-<meta charset="UTF-8">
-<title>Selfie AR - Vivari Beach Club</title>
-<script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
-<style>
-  body { margin:0; background:#000; overflow:hidden; font-family:Arial,sans-serif; }
-  #cameraVideo {
-    position:fixed; top:0; left:0; width:100vw; height:100vh;
-    object-fit:cover; z-index:0;
-    pointer-events:none;
-  }
-  #modelContainer {
-    position:fixed; top:0; left:0; width:100vw; height:100vh;
-    z-index:1;
-  }
-  model-viewer {
-    width:80%;
-    height:80%;
-    position:absolute;
-    top:10%;
-    left:10%;
-    pointer-events:auto;
-    opacity:0.9;
-  }
-  #captureBtn, #switchCameraBtn {
-    position:absolute;
-    z-index:10;
-    padding:20px 30px;
-    border:none; border-radius:20px;
-    background:#0b84ff; color:#fff; font-weight:bold; font-size:20px;
-    cursor:pointer; box-shadow:0 6px 12px rgba(0,0,0,0.4);
-  }
-  #captureBtn {
-    bottom:30px; left:50%; transform:translateX(-50%);
-  }
-  #switchCameraBtn {
-    top:20px; right:20px;
-  }
-  #rotateHint {
-    position:absolute; bottom:100px; left:50%; transform:translateX(-50%);
-    z-index:10;
-    color:#fff; font-size:18px; font-weight:bold;
-    background:rgba(0,0,0,0.4); padding:8px 12px; border-radius:8px;
-  }
-  .ar-button {
-    position:absolute;
-    bottom:100px;
-    left:50%;
-    transform:translateX(-50%);
-    background:#0b84ff;
-    color:#fff;
-    font-size:20px;
-    font-weight:bold;
-    padding:15px 25px;
-    border:none;
-    border-radius:12px;
-    cursor:pointer;
-    box-shadow:0 6px 12px rgba(0,0,0,0.4);
-    z-index:10;
-  }
 
-  @media (max-width:600px) {
-    #captureBtn {
-      padding:30px 40px;
-      font-size:24px;
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <title>Vivi 3D - Realidade Aumentada</title>
+  <script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
+  <style>
+    body {
+      margin: 0;
+      background: #f9f9f9;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      overflow: hidden;
+      font-family: Arial, sans-serif;
     }
-    #rotateHint {
-      font-size:16px;
-      bottom:120px;
+    model-viewer {
+      width: 100%;
+      height: 100%;
+      background-color: transparent;
     }
-  }
-</style>
+    #controls {
+      position: absolute;
+      bottom: 20px;
+      display: flex;
+      gap: 15px;
+      justify-content: center;
+    }
+    button {
+      background: #007aff;
+      color: white;
+      border: none;
+      border-radius: 10px;
+      padding: 10px 18px;
+      font-size: 16px;
+      cursor: pointer;
+    }
+    button:hover {
+      background: #005ecb;
+    }
+  </style>
 </head>
 <body>
 
-<!-- Fundo com a câmera -->
-<video id="cameraVideo" autoplay playsinline muted></video>
-
-<!-- Modelo 3D -->
-<div id="modelContainer">
-  <model-viewer id="model"
+  <!-- Modelo 3D com AR -->
+  <model-viewer
+    id="modeloVivi"
     src="vivi.glb"
-    ios-src="vivi.usdz"
-    alt="Vivi 3D"
+    alt="Modelo 3D Vivi"
     ar
-    ar-modes="webxr scene-viewer quick-look"
-    ar-scale="auto"
+    ar-modes="scene-viewer webxr quick-look"
     camera-controls
-    environment-image="neutral"
+    autoplay
+    exposure="1"
     shadow-intensity="1"
-    shadow-softness="0.8"
-    exposure="1.2"
-    style="background:transparent;"
-  >
-    <button slot="ar-button" class="ar-button">
-      👓 Ver em Realidade Aumentada
-    </button>
-  </model-viewer>
-</div>
+    auto-rotate
+    environment-image="neutral"
+    style="background-color: transparent;"
+  ></model-viewer>
 
-<!-- Dicas e botões -->
-<div id="rotateHint">⬅️ Arraste para girar a Vivi ➡️</div>
-<button id="captureBtn">📸 Tirar Selfie</button>
-<button id="switchCameraBtn">🔄 Trocar Câmera</button>
+  <!-- Botões -->
+  <div id="controls">
+    <button id="btnAR">👓 Ver em AR</button>
+    <button id="btnFoto">📸 Tirar Foto</button>
+  </div>
 
-<script>
-  const video = document.getElementById('cameraVideo');
-  const captureBtn = document.getElementById('captureBtn');
-  const switchCameraBtn = document.getElementById('switchCameraBtn');
-  const modelViewer = document.getElementById('model');
-  let usingFrontCamera = true;
-  let currentStream = null;
+  <script>
+    const modelViewer = document.getElementById('modeloVivi');
+    const btnAR = document.getElementById('btnAR');
+    const btnFoto = document.getElementById('btnFoto');
 
-  // === Função para ligar a câmera (frontal/traseira) ===
-  async function startCamera() {
-    try {
-      if (currentStream) {
-        currentStream.getTracks().forEach(t => t.stop());
-        currentStream = null;
+    // 🔹 Ativar AR automaticamente se suportado
+    modelViewer.addEventListener('ar-status', (event) => {
+      if (event.detail.status === 'not-presenting') {
+        btnAR.disabled = false;
       }
-      const constraints = { video: { facingMode: usingFrontCamera ? "user" : "environment" } };
-      currentStream = await navigator.mediaDevices.getUserMedia(constraints);
-      video.srcObject = currentStream;
-      video.style.transform = usingFrontCamera ? "scaleX(-1)" : "scaleX(1)";
-    } catch (err) {
-      console.error('Erro ao acessar câmera:', err);
-      alert('Erro ao acessar câmera: ' + (err.message || err));
-    }
-  }
+    });
 
-  startCamera();
+    btnAR.addEventListener('click', () => {
+      modelViewer.activateAR();
+    });
 
-  // Alternar câmera
-  switchCameraBtn.addEventListener('click', () => {
-    usingFrontCamera = !usingFrontCamera;
-    startCamera();
-  });
-
-  // === Capturar selfie (mistura câmera + modelo) ===
-  captureBtn.addEventListener('click', async () => {
-    try {
-      const modelDataUrl = await modelViewer.toDataURL();
-      const canvas = document.createElement('canvas');
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight;
-      const ctx = canvas.getContext('2d');
-
-      if (usingFrontCamera) {
-        ctx.save();
-        ctx.translate(canvas.width, 0);
-        ctx.scale(-1, 1);
-        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-        ctx.restore();
-      } else {
-        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    // 🔹 Captura de foto da cena (modo 3D)
+    btnFoto.addEventListener('click', async () => {
+      try {
+        const canvas = modelViewer.renderedCanvas;
+        const img = canvas.toDataURL('image/png');
+        const a = document.createElement('a');
+        a.href = img;
+        a.download = 'vivi_3d.png';
+        a.click();
+      } catch (e) {
+        alert('Não foi possível capturar a imagem.');
+        console.error(e);
       }
-
-      const imgModel = new Image();
-      imgModel.onload = () => {
-        ctx.drawImage(imgModel, canvas.width*0.1, canvas.height*0.1, canvas.width*0.8, canvas.height*0.8);
-
-        ctx.font = `${Math.floor(canvas.height/20)}px Arial`;
-        ctx.fillStyle = "rgba(255,255,255,0.6)";
-        ctx.textAlign = "right";
-        ctx.fillText("Vivari Beach Club", canvas.width-20, canvas.height-20);
-
-        const link = document.createElement('a');
-        link.download = 'selfie_vivi.png';
-        link.href = canvas.toDataURL('image/png');
-        link.click();
-      };
-      imgModel.src = modelDataUrl;
-    } catch (err) {
-      console.error('Erro durante captura:', err);
-      alert('Não foi possível capturar a selfie. ' + (err.message || ''));
-    }
-  });
-</script>
+    });
+  </script>
 
 </body>
 </html>
