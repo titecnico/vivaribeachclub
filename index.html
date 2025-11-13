@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -5,44 +6,47 @@
 <title>Selfie AR - Vivari Beach Club</title>
 <script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
 <style>
-  body { margin:0; background:#000; overflow:hidden; font-family:Arial,sans-serif; }
-  #cameraVideo {
-    position:fixed; top:0; left:0; width:100vw; height:100vh;
-    object-fit:cover; z-index:0;
-    pointer-events:none;
+  body {
+    margin:0; background:#000; overflow:hidden;
+    font-family:Arial,sans-serif;
   }
-  #modelContainer {
-    position:fixed; top:0; left:0; width:100vw; height:100vh;
+
+  model-viewer {
+    width:100vw;
+    height:100vh;
+    position:fixed;
+    top:0; left:0;
     z-index:1;
   }
-  model-viewer {
-    width:80%;
-    height:80%;
-    position:absolute;
-    top:10%;
-    left:10%;
-    pointer-events:auto;
-    opacity:0.9;
-  }
+
   #captureBtn, #switchCameraBtn {
     position:absolute;
     z-index:10;
     padding:20px 30px;
     border:none; border-radius:20px;
-    background:#0b84ff; color:#fff; font-weight:bold; font-size:20px;
-    cursor:pointer; box-shadow:0 6px 12px rgba(0,0,0,0.4);
+    background:#0b84ff; color:#fff;
+    font-weight:bold; font-size:20px;
+    cursor:pointer;
+    box-shadow:0 6px 12px rgba(0,0,0,0.4);
   }
+
   #captureBtn {
     bottom:30px; left:50%; transform:translateX(-50%);
   }
+
   #switchCameraBtn {
     top:20px; right:20px;
   }
+
   #rotateHint {
-    position:absolute; bottom:100px; left:50%; transform:translateX(-50%);
+    position:absolute;
+    bottom:100px;
+    left:50%;
+    transform:translateX(-50%);
     z-index:10;
     color:#fff; font-size:18px; font-weight:bold;
-    background:rgba(0,0,0,0.4); padding:8px 12px; border-radius:8px;
+    background:rgba(0,0,0,0.4);
+    padding:8px 12px; border-radius:8px;
   }
 
   @media (max-width:600px) {
@@ -59,126 +63,60 @@
 </head>
 <body>
 
-<video id="cameraVideo" autoplay playsinline muted></video>
+<!-- === MODEL VIEWER EM AR === -->
+<model-viewer
+  id="model"
+  src="vivi.glb"
+  alt="Vivi 3D"
+  ar
+  ar-modes="webxr scene-viewer quick-look"
+  ar-scale="auto"
+  camera-controls
+  auto-rotate
+  environment-image="neutral"
+  shadow-intensity="1"
+  shadow-softness="0.8"
+  exposure="1.2"
+  autoplay>
+</model-viewer>
 
-<div id="modelContainer">
-  <model-viewer id="model" src="vivi.glb"
-                alt="Vivi 3D"
-                camera-controls
-                ar
-                ar-modes="webxr scene-viewer quick-look"
-                environment-image="neutral"
-                shadow-intensity="1"
-                shadow-softness="0.8"
-                exposure="1.2">
-  </model-viewer>
-</div>
-
+<!-- === ELEMENTOS DA INTERFACE === -->
 <div id="rotateHint">⬅️ Arraste para girar a Vivi ➡️</div>
-<button id="captureBtn">📸 Tirar Selfie</button>
+<button id="captureBtn">📸 Tirar Foto</button>
 <button id="switchCameraBtn">🔄 Trocar Câmera</button>
 
 <script>
-  const video = document.getElementById('cameraVideo');
+  const modelViewer = document.getElementById('model');
   const captureBtn = document.getElementById('captureBtn');
   const switchCameraBtn = document.getElementById('switchCameraBtn');
-  const modelViewer = document.getElementById('model');
-  let usingFrontCamera = true;
-  let currentStream = null;
 
-  // Função para ligar a câmera (frontal/traseira)
-  async function startCamera() {
+  // Ativa AR automaticamente assim que possível
+  window.addEventListener('load', async () => {
     try {
-      if (currentStream) {
-        currentStream.getTracks().forEach(t => t.stop());
-        currentStream = null;
+      if (modelViewer.canActivateAR) {
+        await modelViewer.activateAR();
       }
-      const constraints = { video: { facingMode: usingFrontCamera ? "user" : "environment" } };
-      currentStream = await navigator.mediaDevices.getUserMedia(constraints);
-      video.srcObject = currentStream;
-
-      // espelhar se for câmera frontal para combinar com expectativa do usuário
-      video.style.transform = usingFrontCamera ? "scaleX(-1)" : "scaleX(1)";
     } catch (err) {
-      console.error('Erro ao acessar câmera:', err);
-      alert('Erro ao acessar câmera: ' + (err && err.message ? err.message : err));
+      console.warn("AR automático não disponível:", err);
     }
-  }
-
-  // inicializa
-  startCamera();
-
-  // Alternar câmera
-  switchCameraBtn.addEventListener('click', () => {
-    usingFrontCamera = !usingFrontCamera;
-    startCamera();
   });
 
-  // Função principal de captura: combina frame da câmera + imagem do model-viewer
-  captureBtn.addEventListener('click', async () => {
+  // Botão de captura (aviso para usar o botão nativo do AR)
+  captureBtn.addEventListener('click', () => {
+    alert('📸 Use o botão de foto do visualizador de AR para tirar a foto com a Vivi!');
+  });
+
+  // Troca de câmera (funciona apenas em AR suportado por WebXR)
+  switchCameraBtn.addEventListener('click', async () => {
     try {
-      // 1) pega snapshot do model-viewer (render do 3D)
-      const modelDataUrl = await modelViewer.toDataURL(); // PNG do render do model-viewer
-
-      // 2) prepara canvas do tamanho da tela
-      const canvas = document.createElement('canvas');
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight;
-      const ctx = canvas.getContext('2d');
-
-      // 3) desenha frame da câmera (fundo)
-      // se estiver espelhado (frontal), precisamos aplicar o mesmo espelho ao canvas
-      if (usingFrontCamera) {
-        ctx.save();
-        ctx.translate(canvas.width, 0);
-        ctx.scale(-1, 1);
-        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-        ctx.restore();
+      if (modelViewer.canActivateAR) {
+        await modelViewer.activateAR();
       } else {
-        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        alert('Troca de câmera disponível apenas em dispositivos com WebXR.');
       }
-
-      // 4) desenha o modelo (capturado do model-viewer) na posição correta
-      const imgModel = new Image();
-      imgModel.onload = () => {
-        ctx.drawImage(imgModel, canvas.width*0.1, canvas.height*0.1, canvas.width*0.8, canvas.height*0.8);
-
-        // 5) marca d'água
-        ctx.font = `${Math.floor(canvas.height/20)}px Arial`;
-        ctx.fillStyle = "rgba(255,255,255,0.6)";
-        ctx.textAlign = "right";
-        ctx.fillText("Vivari Beach Club", canvas.width-20, canvas.height-20);
-
-        // 6) forçar download
-        const link = document.createElement('a');
-        link.download = 'selfie_vivi.png';
-        link.href = canvas.toDataURL('image/png');
-        link.click();
-      };
-      imgModel.src = modelDataUrl;
-
-    } catch (err) {
-      console.error('Erro durante captura:', err);
-      alert('Não foi possível capturar a selfie. ' + (err && err.message ? err.message : ''));
+    } catch (e) {
+      console.warn('Erro ao alternar câmera:', e);
     }
-  });
-
-  // Opcional: tentar ativar AR automaticamente após interação do usuário (se desejar)
-  window.addEventListener('load', () => {
-    const tryAR = async () => {
-      try {
-        if (modelViewer.canActivateAR) {
-          await modelViewer.activateAR();
-        }
-      } catch (e) {
-        // silencioso — fallback para modo 3D normal
-        console.warn('AR automático não disponível:', e);
-      }
-      window.removeEventListener('click', tryAR);
-      window.removeEventListener('touchstart', tryAR);
-    };
-    window.addEventListener('click', tryAR);
-    window.addEventListener('touchstart', tryAR);
   });
 </script>
 
